@@ -253,6 +253,7 @@
 </div>
 
 <!-- плёночные слои -->
+<audio id="beat" src="beat.mp3" loop preload="auto"></audio>
 <canvas id="grain"></canvas>
 <div id="flicker"></div>
 <div id="scratch"></div>
@@ -385,54 +386,21 @@
     return "00:" + pad(m) + ":" + pad(s) + ":" + pad(f);
   }
 
-  /* ——— звук проектора (WebAudio, всё синтезируется) ——— */
-  var AC = null, master = null, soundOn = true, tickTimer = null, nodes = [];
-  function initAudio() {
-    if (AC) return;
+  /* ——— звук: бит Виктора + тик синхронизации кадров ——— */
+  var beat = null, soundOn = true, tickCtx = null;
+  function tick() {
+    // сухой тик смены кадра поверх бита — как щелчок плёнки в такт
+    if (!soundOn) return;
     try {
-      AC = new (window.AudioContext || window.webkitAudioContext)();
-      master = AC.createGain(); master.gain.value = soundOn ? 1 : 0;
-      master.connect(AC.destination);
-      var hum = AC.createOscillator(); hum.type = "sawtooth"; hum.frequency.value = 48;
-      var humF = AC.createBiquadFilter(); humF.type = "lowpass"; humF.frequency.value = 90;
-      var humG = AC.createGain(); humG.gain.value = 0.035;
-      hum.connect(humF); humF.connect(humG); humG.connect(master); hum.start();
-      nodes.push(hum);
-      var len = AC.sampleRate * 2;
-      var buf = AC.createBuffer(1, len, AC.sampleRate);
-      var d = buf.getChannelData(0);
-      for (var k = 0; k < len; k++) d[k] = (Math.random() * 2 - 1) * 0.4;
-      var hiss = AC.createBufferSource(); hiss.buffer = buf; hiss.loop = true;
-      var hissF = AC.createBiquadFilter(); hissF.type = "bandpass"; hissF.frequency.value = 1100; hissF.Q.value = 0.6;
-      var hissG = AC.createGain(); hissG.gain.value = 0.006;
-      hiss.connect(hissF); hissF.connect(hissG); hissG.connect(master); hiss.start();
-      nodes.push(hiss);
-      tickTimer = setInterval(function () {
-        if (!AC || AC.state !== "running") return;
-        var t = AC.currentTime;
-        var o = AC.createOscillator(); o.type = "square"; o.frequency.value = 420;
-        var g = AC.createGain();
-        g.gain.setValueAtTime(0.012, t);
-        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.03);
-        o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.04);
-      }, 55);
-    } catch (e) { AC = null; }
-  }
-  function cutSound() {
-    if (!AC || !soundOn) return;
-    var t = AC.currentTime;
-    var o = AC.createOscillator(); o.type = "triangle"; o.frequency.setValueAtTime(180, t);
-    o.frequency.exponentialRampToValueAtTime(60, t + 0.08);
-    var g = AC.createGain(); g.gain.setValueAtTime(0.09, t);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
-    o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.1);
-  }
-  function stopAudio() {
-    if (tickTimer) { clearInterval(tickTimer); tickTimer = null; }
-    if (master && AC) {
-      master.gain.setTargetAtTime(0, AC.currentTime, 0.15);
-      setTimeout(function () { nodes.forEach(function (n) { try { n.stop(); } catch (e) {} }); }, 600);
-    }
+      tickCtx = tickCtx || new (window.AudioContext || window.webkitAudioContext)();
+      if (tickCtx.state === "suspended") tickCtx.resume();
+      var t = tickCtx.currentTime;
+      var o = tickCtx.createOscillator(); o.type = "triangle"; o.frequency.setValueAtTime(180, t);
+      o.frequency.exponentialRampToValueAtTime(60, t + 0.07);
+      var g = tickCtx.createGain(); g.gain.setValueAtTime(0.05, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.08);
+      o.connect(g); g.connect(tickCtx.destination); o.start(t); o.stop(t + 0.09);
+    } catch (e) {}
   }
   function buzz(ms) { if (navigator.vibrate) navigator.vibrate(ms); }
 
@@ -492,7 +460,7 @@
     cut.classList.remove("flash");
     void cut.offsetWidth;
     cut.classList.add("flash");
-    cutSound();
+    tick();
     if (i > 7) buzz(8);
   }
 
@@ -589,7 +557,7 @@
 
   function endReel() {
     cinema.classList.remove("on");
-    stopAudio();
+    if (beat) beat.pause();
     var end = $("reelEnd");
     end.classList.add("on");
     buzz(24);
@@ -635,8 +603,8 @@
 
   /* ——— управление ——— */
   $("start").addEventListener("click", function () {
-    initAudio();
-    if (AC && AC.state === "suspended") AC.resume();
+    beat = beat || document.getElementById("beat");
+    if (beat) { beat.volume = 0.55; beat.play().catch(function () {}); }
     try { if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen(); } catch (e) {}
     $("intro").classList.add("gone");
     cinema.classList.add("on");
@@ -650,7 +618,7 @@
   $("soundBtn").addEventListener("click", function () {
     soundOn = !soundOn;
     this.textContent = "звук: " + (soundOn ? "вкл" : "выкл");
-    if (master && AC) master.gain.setTargetAtTime(soundOn ? 1 : 0, AC.currentTime, 0.05);
+    if (beat) beat.muted = !soundOn;
   });
   $("again").addEventListener("click", function () {
     order = shuffle(FRAMES.slice()).concat([LAST]);
