@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>фильм, где ты главный герой — розовый взгляд</title>
+<style>
+  :root {
+    --bg: #faf7f2;
+    --paper: #f4ede9;
+    --ink: #2b2233;
+    --soft: #5c5266;
+    --dim: #877b93;
+    --pink: #d64a97;
+    --pink-hot: #e85da8;
+    --bar: #221a2c;
+    --line: #eadfe6;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { min-height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .dvh { height: 100vh; height: 100dvh; }
+
+  /* ——— тёплый свет ——— */
+  .lamp {
+    position: fixed; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse 70% 55% at 72% 16%, rgba(214,74,151,0.09), transparent 65%);
+  }
+
+  /* ——— стартовый экран ——— */
+  #intro {
+    position: fixed; inset: 0; z-index: 20;
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 0 26px;
+    transition: opacity 0.5s ease, visibility 0.5s;
+  }
+  #intro.gone { opacity: 0; visibility: hidden; }
+  .mark {
+    font-size: 12px; letter-spacing: 0.22em; text-transform: lowercase;
+    color: var(--dim); margin-bottom: 26px;
+  }
+  .mark b { color: var(--pink); font-weight: 600; }
+  #intro h1 {
+    font-size: clamp(32px, 8vw, 54px); line-height: 1.12; font-weight: 700;
+    letter-spacing: -0.015em; margin-bottom: 22px; max-width: 15ch;
+  }
+  #intro h1 em { font-style: normal; color: var(--pink); }
+  #intro .lead {
+    font-size: clamp(15px, 4vw, 17.5px); line-height: 1.62; color: var(--soft);
+    max-width: 46ch; margin-bottom: 40px;
+  }
+  #start {
+    align-self: flex-start;
+    background: none; border: none; cursor: pointer;
+    color: var(--ink); font: inherit; font-size: clamp(17px, 4.6vw, 20px);
+    padding: 14px 2px 12px; border-bottom: 2px solid var(--pink);
+    transition: color 0.2s, border-color 0.2s, letter-spacing 0.25s;
+  }
+  #start:hover, #start:focus-visible { color: var(--pink-hot); letter-spacing: 0.04em; outline: none; }
+  #intro .fine {
+    margin-top: 34px; font-size: 12.5px; color: var(--dim); line-height: 1.6;
+  }
+
+  /* ——— монтажная: тёмные полосы, светлый кадр ——— */
+  #cinema { position: fixed; inset: 0; z-index: 10; display: none; }
+  #cinema.on { display: block; }
+  .lb {
+    position: absolute; left: 0; right: 0; height: 11vh; min-height: 64px;
+    background: var(--bar); z-index: 12;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 18px; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    font-size: 11.5px; letter-spacing: 0.08em; color: #b9aecd;
+  }
+  .lb-top { top: 0; }
+  .lb-bot { bottom: 0; }
+  .lb .eye { color: var(--pink-hot); }
+  #soundBtn {
+    background: none; border: none; cursor: pointer; color: #b9aecd;
+    font: inherit; letter-spacing: 0.08em; padding: 8px 4px;
+  }
+  #soundBtn:hover { color: var(--pink-hot); }
+  #timecode { font-variant-numeric: tabular-nums; }
+  #counter { font-variant-numeric: tabular-nums; color: #d9b8d4; }
+  .zone-hint { display: flex; gap: 26px; }
+
+  /* ——— кадр ——— */
+  #frameArea { position: absolute; top: 11vh; bottom: 11vh; left: 0; right: 0;
+    touch-action: none; user-select: none; -webkit-user-select: none; cursor: grab; }
+  #frameArea:active { cursor: grabbing; }
+  .frame {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0 24px; text-align: center;
+    background:
+      radial-gradient(ellipse 85% 70% at 50% 42%, #fffdfb, var(--paper) 94%);
+    will-change: transform;
+  }
+  .frame.spring { transition: transform 0.34s cubic-bezier(0.2, 0.8, 0.3, 1.25); }
+  .frame.fly { transition: transform 0.26s ease-in, opacity 0.26s ease-in; opacity: 0; }
+  .frame .line {
+    font-size: clamp(24px, 6vw, 44px); line-height: 1.32; font-weight: 600;
+    letter-spacing: -0.01em; max-width: 21ch; color: var(--ink);
+    animation: cutIn 0.34s cubic-bezier(0.2, 0.8, 0.2, 1) both,
+               breathe 4.4s ease-in-out 0.34s infinite alternate;
+  }
+  @keyframes cutIn {
+    from { opacity: 0; transform: scale(1.07); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  @keyframes breathe {
+    from { transform: scale(1); } to { transform: scale(1.006); }
+  }
+  .frame .tcode {
+    position: absolute; top: 14px; right: 18px;
+    font-family: ui-monospace, Consolas, monospace; font-size: 10.5px;
+    color: #a79bb5; letter-spacing: 0.1em;
+  }
+  .stamp {
+    position: absolute; top: 34px; padding: 5px 14px;
+    font-size: clamp(17px, 4.4vw, 23px); font-weight: 700; letter-spacing: 0.06em;
+    border: 2px solid; border-radius: 2px; opacity: 0; pointer-events: none;
+    transition: opacity 0.08s linear;
+  }
+  .stamp-yes { left: 18px; color: var(--pink); border-color: var(--pink); transform: rotate(-9deg); }
+  .stamp-no { right: 18px; color: var(--dim); border-color: var(--dim); transform: rotate(9deg); }
+  .hintDrag {
+    position: absolute; bottom: 24px; left: 0; right: 0; text-align: center;
+    font-size: 13px; letter-spacing: 0.05em; color: var(--dim);
+  }
+  .hintDrag .arr { display: inline-block; color: var(--pink); }
+  .hintDrag .arr-l { animation: nudgeL 1.6s ease-in-out infinite; }
+  .hintDrag .arr-r { animation: nudgeR 1.6s ease-in-out infinite; }
+  @keyframes nudgeL { 0%,100% { transform: translateX(0); } 50% { transform: translateX(-7px); } }
+  @keyframes nudgeR { 0%,100% { transform: translateX(0); } 50% { transform: translateX(7px); } }
+
+  /* ——— плёночные слои ——— */
+  #grain {
+    position: fixed; inset: 0; z-index: 14; pointer-events: none;
+    width: 100%; height: 100%;
+    opacity: 0.06; mix-blend-mode: multiply; image-rendering: pixelated;
+  }
+  #flicker { position: fixed; inset: 0; background: #241c30; z-index: 13; pointer-events: none; opacity: 0; }
+  #cut { position: fixed; inset: 0; background: #241c30; z-index: 15; pointer-events: none; opacity: 0; }
+  #cut.flash { animation: cutFlash 0.14s linear; }
+  @keyframes cutFlash { 0% { opacity: 0.16; } 100% { opacity: 0; } }
+  #scratch {
+    position: fixed; top: 0; bottom: 0; width: 1px; z-index: 14; pointer-events: none;
+    background: rgba(43,34,51,0.08); animation: crawl 9s linear infinite;
+  }
+  @keyframes crawl { from { left: -2%; } to { left: 102%; } }
+
+  /* ——— конец плёнки ——— */
+  #reelEnd {
+    position: fixed; inset: 0; z-index: 18; background: #fff; display: none;
+    align-items: center; justify-content: center;
+    color: var(--soft); font-family: Georgia, "Times New Roman", serif; font-style: italic;
+    font-size: clamp(17px, 4.4vw, 22px); letter-spacing: 0.02em;
+  }
+  #reelEnd.on { display: flex; animation: whiteout 0.8s ease both; }
+  @keyframes whiteout { from { opacity: 0; } to { opacity: 1; } }
+
+  /* ——— результат: светлый монтажный лист ——— */
+  #result {
+    position: fixed; inset: 0; z-index: 19; display: none;
+    overflow-y: auto; background: var(--bg); -webkit-overflow-scrolling: touch;
+  }
+  #result.on { display: block; }
+  .rwrap { min-height: 100vh; min-height: 100dvh; padding: 11vh 26px 9vh;
+    max-width: 620px; margin: 0 auto; display: flex; flex-direction: column; justify-content: center; }
+  #result .kicker { font-size: 12px; letter-spacing: 0.22em; color: var(--dim); margin-bottom: 18px; }
+  #result h2 { font-size: clamp(26px, 6.4vw, 40px); line-height: 1.16; margin-bottom: 14px; letter-spacing: -0.015em; }
+  #result h2 em { font-style: normal; color: var(--pink); }
+  .leadline { font-size: 14.5px; color: var(--soft); margin-bottom: 34px; line-height: 1.55; }
+
+  .type-row { border-top: 1px solid var(--line); }
+  .type-row:last-of-type { border-bottom: 1px solid var(--line); }
+  .type-cap {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    padding: 17px 2px; cursor: pointer;
+  }
+  .type-cap .left { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 0; }
+  .type-cap .name { font-size: 14.5px; color: var(--ink); letter-spacing: 0.02em; }
+  .type-cap .track { height: 2px; background: rgba(214,74,151,0.14); position: relative; }
+  .type-cap .fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--pink); width: 0; transition: width 1.1s cubic-bezier(0.2, 0.7, 0.2, 1); }
+  .type-cap .num { font-family: ui-monospace, Consolas, monospace; font-size: 13px; color: var(--pink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .type-cap .chev { color: var(--dim); font-size: 13px; transition: transform 0.22s ease; flex: none; }
+  .type-row.open .chev { transform: rotate(90deg); }
+  .type-body { display: none; padding: 2px 2px 20px; max-width: 52ch; }
+  .type-row.open .type-body { display: block; animation: openUp 0.24s ease both; }
+  @keyframes openUp { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+  .type-body .what { font-size: 15px; line-height: 1.6; color: var(--soft); margin-bottom: 12px; }
+  .type-body .rec { font-size: 13.5px; line-height: 1.6; color: var(--dim); }
+  .type-body .rec b { color: var(--ink); font-weight: 600; }
+  .type-body .rec a { color: var(--pink); text-decoration: none; border-bottom: 1px solid rgba(214,74,151,0.35); transition: border-color 0.2s, color 0.2s; }
+  .type-body .rec a:hover { color: var(--pink-hot); border-color: var(--pink-hot); }
+
+  .picked { margin-top: 26px; padding: 18px 20px; border: 1px solid var(--line); background: #fff;
+    font-size: 14.5px; line-height: 1.7; color: var(--soft); }
+  .picked b { color: var(--ink); font-weight: 600; display: inline-block; margin-bottom: 6px; }
+
+  .subscribe {
+    margin-top: 36px; padding: 20px 22px;
+    border: 1px solid var(--line); background: #fff;
+  }
+  .subscribe .s-lead { font-size: 15px; line-height: 1.55; color: var(--ink); margin-bottom: 14px; }
+  #tgLink {
+    display: inline-block; background: none; border: none; cursor: pointer;
+    color: var(--ink); font: inherit; font-size: 15.5px; text-decoration: none;
+    padding: 10px 2px 8px; border-bottom: 2px solid var(--pink);
+    transition: color 0.2s, letter-spacing 0.25s;
+  }
+  #tgLink:hover { color: var(--pink-hot); letter-spacing: 0.03em; }
+  #again {
+    align-self: flex-start; background: none; border: none; cursor: pointer;
+    color: var(--dim); font: inherit; font-size: 14px; padding: 10px 2px; margin-top: 26px;
+    border-bottom: 1px solid var(--line); transition: color 0.2s, border-color 0.2s;
+  }
+  #again:hover { color: var(--pink); border-color: var(--pink); }
+  .honesty { margin-top: 26px; font-size: 12px; color: var(--dim); line-height: 1.6; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .frame .line, #scratch, .fill, .hintDrag .arr, .type-body { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="lamp"></div>
+
+<!-- старт -->
+<section id="intro" class="dvh">
+  <div class="mark">розовый взгляд <b>👁</b> плёнка №1</div>
+  <h1>фильм, где ты <em>главный герой</em></h1>
+  <p class="lead">вспомни свой вчерашний день. дальше — кадры: тяни вправо — «было», влево — «не было». а в середине выпадут новые кадры — те, которых у тебя не было: их можно взять в свой фильм или пропустить. правильных ответов нет — это твой фильм.</p>
+  <button id="start">запустить плёнку →</button>
+  <p class="fine">14 кадров дня + 6 новых · минута тишины · страница ничего не отправляет и не запоминает</p>
+</section>
+
+<!-- монтажная -->
+<div id="cinema">
+  <div class="lb lb-top">
+    <span>розовый взгляд <span class="eye">👁</span> плёнка №1</span>
+    <button id="soundBtn">звук: вкл</button>
+  </div>
+  <div id="frameArea"></div>
+  <div class="lb lb-bot">
+    <span id="timecode">00:00:00:00</span>
+    <span class="zone-hint"><span>← не было</span><span>было →</span></span>
+    <span id="counter">кадр 01 / 14</span>
+  </div>
+</div>
+
+<!-- плёночные слои -->
+<audio id="beat" src="beat.mp3" loop preload="auto"></audio>
+<canvas id="grain"></canvas>
+<div id="flicker"></div>
+<div id="scratch"></div>
+<div id="cut"></div>
+
+<!-- конец плёнки -->
+<div id="reelEnd"><span>плёнка кончилась.</span></div>
+
+<!-- результат -->
+<section id="result">
+  <div class="rwrap">
+    <div class="kicker">монтажный лист · розовый взгляд 👁</div>
+    <h2 id="rTitle">твой фильм — <em>14 кадров</em>.</h2>
+    <p class="leadline" id="leadline">нажми на строку — расскажу, что это за фильм, и дам пост по теме.</p>
+
+    <div class="type-row" data-g="other">
+      <div class="type-cap">
+        <div class="left">
+          <span class="name">кадры на Другого</span>
+          <div class="track"><div class="fill" id="fOther"></div></div>
+        </div>
+        <span class="num" id="nOther">0</span>
+        <span class="chev">▸</span>
+      </div>
+      <div class="type-body">
+        <p class="what" id="whatOther"></p>
+        <p class="rec" id="recOther"></p>
+      </div>
+    </div>
+
+    <div class="type-row" data-g="mine">
+      <div class="type-cap">
+        <div class="left">
+          <span class="name">кадры своего пути</span>
+          <div class="track"><div class="fill" id="fMine"></div></div>
+        </div>
+        <span class="num" id="nMine">0</span>
+        <span class="chev">▸</span>
+      </div>
+      <div class="type-body">
+        <p class="what" id="whatMine"></p>
+        <p class="rec" id="recMine"></p>
+      </div>
+    </div>
+
+    <div class="type-row" data-g="reel">
+      <div class="type-cap">
+        <div class="left">
+          <span class="name">кадры чужого фильма</span>
+          <div class="track"><div class="fill" id="fReel"></div></div>
+        </div>
+        <span class="num" id="nReel">0</span>
+        <span class="chev">▸</span>
+      </div>
+      <div class="type-body">
+        <p class="what" id="whatReel"></p>
+        <p class="rec" id="recReel"></p>
+      </div>
+    </div>
+
+    <div class="picked" id="picked" style="display:none"></div>
+
+    <div class="subscribe">
+      <p class="s-lead">этот фильм — из розового взгляда 👀<br>в канале — такие же фильмы, только текстом.</p>
+      <a id="tgLink" href="https://t.me/p1nks1ght" target="_blank" rel="noopener">подписаться на канал →</a>
+    </div>
+
+    <button id="again">← собрать плёнку заново</button>
+    <p class="honesty">страница ничего не отправляет и не запоминает — фильм остаётся у тебя.</p>
+  </div>
+</section>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ——— кадры плёнки ——— */
+  var FRAMES = [
+    { t: "написал человеку. просто так, без повода.", g: "other" },
+    { t: "слушал до конца, даже когда уже знал, что ответишь.", g: "other" },
+    { t: "сделал для Другого то, о чём никто не узнает.", g: "other" },
+    { t: "сказал вслух то, что долго носил в себе.", g: "other" },
+    { t: "сел за отложенное и остался на час.", g: "mine" },
+    { t: "выбрал своё, когда удобнее было промолчать.", g: "mine" },
+    { t: "довёл одну вещь до финала — не пять до середины.", g: "mine" },
+    { t: "видел чужую дорогу — и остался на своей.", g: "mine" },
+    { t: "чай у окна. без телефона, без спешки.", g: "mine" },
+    { t: "полчаса чужих кадров. досмотрел всё.", g: "reel" },
+    { t: "сравнивал свой день с чужой витриной.", g: "reel" },
+    { t: "заметил, как минута с телефоном стала часом?", g: "reel" },
+    { t: "вечером не смог вспомнить, куда ушёл день.", g: "reel" }
+  ];
+  var LAST = { t: "был там, где ты — минута, без экрана и без никого", g: "mine" };
+
+  /* ——— новые кадры: свободные оси, не дублируют кадры дня (см. КАТАЛОГ-КАДРОВ.md) ——— */
+  var NEW = [
+    { t: "попросить о помощи — вслух, без «мне неудобно».", g: "other", n: true },
+    { t: "сказать «нет» и не извиниться за это.", g: "other", n: true },
+    { t: "заговорить с незнакомым человеком первым.", g: "other", n: true },
+    { t: "сделать что-то руками — приготовить, собрать, починить.", g: "mine", n: true },
+    { t: "выйти из дома без цели и маршрута.", g: "mine", n: true },
+    { t: "вернуться туда, где давно не был.", g: "mine", n: true }
+  ];
+
+  /* ——— расшифровки и посты по типам фильма ——— */
+  var TG = "https://t.me/p1nks1ght/";
+  var TYPES = {
+    other: {
+      what: "кадры, где твоё внимание было на человеке: разговор, помощь, слово, которое ты нёс. не про тебя — про кого-то. это плёнка про Контакт.",
+      rec: 'пост по теме: <b><a href="' + TG + '146" target="_blank" rel="noopener">«механизм Контакта с Другим»</a></b> — как устанавливается связь: Свой/Чужой, доверие, эмоциональный Контакт.'
+    },
+    mine: {
+      what: "кадры, где ты снимал свою жизнь сам: выбрал своё, довёл начатое, побыл у себя. время в этих кадрах — твоё.",
+      rec: 'пост по теме: <b><a href="' + TG + '197" target="_blank" rel="noopener">«зачем создавать нарративы»</a></b> — то, что невидимо, непроживаемо: сперва увидеть, потом жить.'
+    },
+    reel: {
+      what: "кадры, где ты смотрел чужое: лента, витрины, чужие дни. время шло — но оператором был кто-то другой.",
+      rec: 'пост по теме: <b><a href="' + TG + '192" target="_blank" rel="noopener">«свои и чужие игры»</a></b> — человек рождается игроком чужих игр. и выходит из них.'
+    }
+  };
+
+  var order = shuffle(FRAMES.slice(0, 7))
+    .concat(shuffle(NEW.slice()))
+    .concat(shuffle(FRAMES.slice(7)).concat([LAST]));
+  var i = 0, tc = 0, newSeen = 0;
+  var tally = { other: 0, mine: 0, reel: 0 };
+  var yesTotal = 0;
+  var picked = [];
+
+  var $ = function (id) { return document.getElementById(id); };
+  var cinema = $("cinema"), frameArea = $("frameArea"), cut = $("cut");
+
+  function shuffle(a) {
+    for (var k = a.length - 1; k > 0; k--) {
+      var j = Math.floor(Math.random() * (k + 1));
+      var tmp = a[k]; a[k] = a[j]; a[j] = tmp;
+    }
+    return a;
+  }
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function tcodeStr(sec) {
+    var f = Math.floor((sec % 1) * 24);
+    var s = Math.floor(sec) % 60;
+    var m = Math.floor(sec / 60) % 60;
+    return "00:" + pad(m) + ":" + pad(s) + ":" + pad(f);
+  }
+
+  /* ——— звук: бит Виктора + тик синхронизации кадров ——— */
+  var beat = null, soundOn = true, tickCtx = null, beatAnalyser = null, beatData = null;
+  function tick() {
+    // сухой тик смены кадра поверх бита — как щелчок плёнки в такт
+    if (!soundOn) return;
+    try {
+      tickCtx = tickCtx || new (window.AudioContext || window.webkitAudioContext)();
+      if (tickCtx.state === "suspended") tickCtx.resume();
+      var t = tickCtx.currentTime;
+      var o = tickCtx.createOscillator(); o.type = "triangle"; o.frequency.setValueAtTime(180, t);
+      o.frequency.exponentialRampToValueAtTime(60, t + 0.07);
+      var g = tickCtx.createGain(); g.gain.setValueAtTime(0.05, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.08);
+      o.connect(g); g.connect(tickCtx.destination); o.start(t); o.stop(t + 0.09);
+    } catch (e) {}
+  }
+  /* ——— анализ бита: амплитуда кормит визуал (пыль, пульс строки) ——— */
+  function connectAnalyser() {
+    try {
+      if (!tickCtx) tickCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (tickCtx.state === "suspended") tickCtx.resume();
+      if (beatAnalyser) return;
+      var src = tickCtx.createMediaElementSource(beat);
+      beatAnalyser = tickCtx.createAnalyser();
+      beatAnalyser.fftSize = 256;
+      beatData = new Uint8Array(beatAnalyser.frequencyBinCount);
+      src.connect(beatAnalyser);
+      beatAnalyser.connect(tickCtx.destination); // звук идёт дальше в выход
+    } catch (e) { beatAnalyser = null; }
+  }
+  function beatLevel() {
+    if (!beatAnalyser || !soundOn) return 0;
+    beatAnalyser.getByteFrequencyData(beatData);
+    var sum = 0;
+    for (var k = 0; k < 24; k++) sum += beatData[k]; // низкие частоты = кик
+    return sum / (24 * 255);
+  }
+  function buzz(ms) { if (navigator.vibrate) navigator.vibrate(ms); }
+
+  /* ——— зерно и живая пыль ——— */
+  var grain = $("grain"), gctx = grain.getContext("2d");
+  var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  grain.width = 180; grain.height = 110;
+  var dust = [];
+  var DUST_N = 46;
+  function seedDust() {
+    dust = [];
+    for (var k = 0; k < DUST_N; k++) {
+      dust.push({ x: Math.random(), y: Math.random(),
+        r: 0.4 + Math.random() * 1.3,
+        vx: (Math.random() - 0.5) * 0.0007,
+        vy: -0.0002 - Math.random() * 0.0009,
+        a: 0.06 + Math.random() * 0.2, ph: Math.random() * 6.28 });
+    }
+  }
+  seedDust();
+  function drawGrain() {
+    var w = grain.width, h = grain.height;
+    var img = gctx.createImageData(w, h);
+    var d = img.data;
+    for (var k = 0; k < d.length; k += 4) {
+      var v = Math.random() * 255;
+      d[k] = v; d[k + 1] = v; d[k + 2] = v; d[k + 3] = 255;
+    }
+    // живая пыль в луче проектора: дрейф вверх, мерцание, отдача от бита
+    var lvl = beatLevel();
+    var pulse = lvl * 1.6;
+    for (var j = 0; j < dust.length; j++) {
+      var p = dust[j];
+      p.x += p.vx * (1 + pulse * 2); p.y += p.vy * (1 + pulse * 3);
+      if (p.y < -0.02) { p.y = 1.02; p.x = Math.random(); }
+      if (p.x < -0.02) p.x = 1.02; else if (p.x > 1.02) p.x = -0.02;
+      var tw = 0.55 + 0.45 * Math.sin(Date.now() * 0.002 + p.ph);
+      var alpha = p.a * tw * (0.7 + pulse * 1.8);
+      if (alpha > 0.5) alpha = 0.5;
+      var px = Math.round(p.x * w), py = Math.round(p.y * h);
+      var rad = Math.max(1, Math.round(p.r * (1 + pulse)));
+      for (var dy = -rad; dy <= rad; dy++) {
+        var yy = py + dy; if (yy < 0 || yy >= h) continue;
+        for (var dx = -rad; dx <= rad; dx++) {
+          var xx = px + dx; if (xx < 0 || xx >= w) continue;
+          if (dx*dx + dy*dy > rad*rad) continue;
+          var idx = 4 * (yy * w + xx);
+          d[idx] = Math.min(255, d[idx] + 232 * alpha);
+          d[idx+1] = Math.min(255, d[idx+1] + 190 * alpha);
+          d[idx+2] = Math.min(255, d[idx+2] + 228 * alpha);
+        }
+      }
+    }
+    gctx.putImageData(img, 0, 0);
+    window.__beatPulse = lvl; // для пульса строки кадра
+  }
+  drawGrain();
+  if (!reduced) {
+    setInterval(drawGrain, 90);
+    setInterval(function () {
+      $("flicker").style.opacity = (Math.random() * 0.05 + beatLevel() * 0.04).toFixed(3);
+    }, 70);
+  }
+
+  /* ——— показ кадров ——— */
+  function pad2(n) { return (n < 10 ? "0" : "") + n; }
+  var dragHinted = false;
+  function showFrame() {
+    var f = order[i];
+    tc += 1.2 + Math.random() * 1.6;
+    frameArea.innerHTML = "";
+    var el = document.createElement("div");
+    el.className = "frame";
+    var line = document.createElement("div");
+    line.className = "line";
+    line.textContent = f.t;
+    var tcode = document.createElement("div");
+    tcode.className = "tcode";
+    tcode.textContent = "кадр " + pad2(i + 1) + " · " + tcodeStr(tc);
+    var sy = document.createElement("div");
+    var sn = document.createElement("div");
+    var isNew = !!f.n;
+    if (isNew) {
+      newSeen++;
+      sy.className = "stamp stamp-yes"; sy.textContent = "беру";
+      sn.className = "stamp stamp-no"; sn.textContent = "мимо";
+    } else {
+      sy.className = "stamp stamp-yes"; sy.textContent = "было";
+      sn.className = "stamp stamp-no"; sn.textContent = "не было";
+    }
+    el.appendChild(line); el.appendChild(tcode); el.appendChild(sy); el.appendChild(sn);
+    if (!dragHinted && !isNew) {
+      dragHinted = true;
+      var hint = document.createElement("div");
+      hint.className = "hintDrag";
+      hint.innerHTML = '<span class="arr arr-l">←</span> &nbsp;тяни кадр или тапни по своей половине&nbsp; <span class="arr arr-r">→</span>';
+      el.appendChild(hint);
+    }
+    frameArea.appendChild(el);
+    // строка кадра дышит с битом: лёгкий масштаб-пульс, затухающий к статике
+    if (!reduced) {
+      var lineEl = el.querySelector(".line");
+      var pulseTick = 0;
+      var breathe = setInterval(function () {
+        pulseTick++;
+        var lvl = window.__beatPulse || 0;
+        var scale = 1 + lvl * 0.045;
+        if (pulseTick > 40) { clearInterval(breathe); lineEl.style.transform = ""; return; }
+        lineEl.style.transform = "scale(" + scale.toFixed(4) + ")";
+      }, 90);
+    }
+    $("timecode").textContent = tcodeStr(tc);
+    if (isNew) {
+      $("counter").textContent = "новый " + pad2(newSeen) + " / " + pad2(NEW.length);
+    } else {
+      $("counter").textContent = "кадр " + pad2(i + 1) + " / " + pad2(order.length);
+    }
+    cut.classList.remove("flash");
+    void cut.offsetWidth;
+    cut.classList.add("flash");
+    tick();
+    if (i > 7) buzz(8);
+  }
+
+  /* ——— свайп-физика ——— */
+  var dragging = false, startX = 0, startY = 0, dx = 0, maxAbs = 0, locked = false, tracked = false;
+  var DECIDE = 110, TAP_JITTER = 12;
+  function zoneOpacity(d) { return Math.min(Math.abs(d) / 90, 1); }
+  function onDown(e) {
+    if (locked) return;
+    var p = e.touches ? e.touches[0] : e;
+    dragging = true; tracked = false; maxAbs = 0; startX = p.clientX; startY = p.clientY; dx = 0;
+  }
+  function onMove(e) {
+    if (!dragging || locked) return;
+    var p = e.touches ? e.touches[0] : e;
+    dx = p.clientX - startX;
+    var dy = p.clientY - startY;
+    if (!tracked) {
+      if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+      if (Math.abs(dy) > Math.abs(dx) * 1.4) { dragging = false; return; }
+      tracked = true;
+    }
+    maxAbs = Math.max(maxAbs, Math.abs(dx));
+    if (maxAbs > TAP_JITTER) e.preventDefault();
+    var el = frameArea.firstChild;
+    if (!el) return;
+    var vis = maxAbs > TAP_JITTER ? dx : 0;
+    el.style.transform = "translateX(" + vis + "px) rotate(" + (vis / 22) + "deg)";
+    el.querySelector(".stamp-yes").style.opacity = vis > 0 ? zoneOpacity(vis) : 0;
+    el.querySelector(".stamp-no").style.opacity = vis < 0 ? zoneOpacity(-vis) : 0;
+  }
+  function onUp(e) {
+    if (!dragging) return;
+    dragging = false;
+    if (locked) return;
+    var el = frameArea.firstChild;
+    if (!el) return;
+    if (!tracked || maxAbs < TAP_JITTER) {
+      var p = e.changedTouches ? e.changedTouches[0] : e;
+      var yes = p.clientX >= window.innerWidth / 2;
+      locked = true;
+      el.classList.add("spring");
+      el.style.transform = "";
+      setTimeout(function () { answerInner(yes, true); }, 90);
+      return;
+    }
+    if (dx > DECIDE) answer(true, false, el, dx);
+    else if (dx < -DECIDE) answer(false, false, el, dx);
+    else {
+      el.classList.add("spring");
+      el.style.transform = "";
+      el.querySelector(".stamp-yes").style.opacity = 0;
+      el.querySelector(".stamp-no").style.opacity = 0;
+    }
+  }
+  frameArea.addEventListener("mousedown", onDown);
+  window.addEventListener("mousemove", onMove);
+  window.addEventListener("mouseup", onUp);
+  frameArea.addEventListener("touchstart", onDown, { passive: true });
+  frameArea.addEventListener("touchmove", onMove, { passive: false });
+  frameArea.addEventListener("touchend", onUp);
+
+  function answerInner(yes, viaTap, el, fromDx) {
+    var f = order[i];
+    var card = el || frameArea.firstChild;
+    burstParticles(card, yes);
+    if (viaTap) {
+      var tapT = yes ? window.innerWidth * 0.55 : -window.innerWidth * 0.55;
+      card.classList.add("fly");
+      card.style.transform = "translateX(" + tapT + "px) rotate(" + (yes ? 7 : -7) + "deg)";
+    } else if (fromDx != null) {
+      var dir = fromDx > 0 ? 1 : -1;
+      var end = dir * (window.innerWidth * 0.75 + Math.abs(fromDx));
+      card.classList.add("fly");
+      card.style.transform = "translateX(" + end + "px) rotate(" + (dir * 16) + "deg)";
+    } else {
+      card.classList.add("fly");
+      card.style.transform = "translateX(" + (yes ? 1 : -1) * (window.innerWidth * 0.7) + "px) rotate(" + (yes ? 14 : -14) + "deg)";
+    }
+    card.querySelector(".stamp-yes").style.opacity = yes ? 1 : 0;
+    card.querySelector(".stamp-no").style.opacity = yes ? 0 : 1;
+    if (yes) {
+      if (f.n) { picked.push(f); buzz(14); }
+      else { tally[f.g]++; yesTotal++; buzz(14); }
+    }
+    i++;
+    if (i < order.length) {
+      setTimeout(function () { locked = false; showFrame(); }, 240);
+    } else {
+      setTimeout(endReel, 320);
+    }
+  }
+  function answer(yes, viaTap, el, fromDx) {
+    if (i >= order.length || locked) return;
+    locked = true;
+    answerInner(yes, viaTap, el, fromDx);
+  }
+
+  /* ——— разлёт кадра на частицах ——— */
+  var burstCanvas = document.createElement("canvas");
+  burstCanvas.style.cssText = "position:fixed;inset:0;z-index:16;pointer-events:none;width:100%;height:100%";
+  document.body.appendChild(burstCanvas);
+  var bctx = burstCanvas.getContext("2d");
+  var parts = [], burstRunning = false;
+  function sizeBurst() {
+    burstCanvas.width = window.innerWidth;
+    burstCanvas.height = window.innerHeight;
+  }
+  sizeBurst();
+  window.addEventListener("resize", sizeBurst);
+  function burstParticles(card, yes) {
+    if (reduced || !card) return;
+    var rect = card.getBoundingClientRect();
+    var cx = rect.left + rect.width / 2;
+    var cy = rect.top + rect.height / 2;
+    var dir = yes ? 1 : -1;
+    var N = 90;
+    for (var k = 0; k < N; k++) {
+      parts.push({
+        x: cx + (Math.random() - 0.5) * rect.width * 0.9,
+        y: cy + (Math.random() - 0.5) * rect.height * 0.8,
+        vx: dir * (2.2 + Math.random() * 5.5) + (Math.random() - 0.5) * 1.4,
+        vy: (Math.random() - 0.5) * 4.2,
+        r: 0.7 + Math.random() * 2.1,
+        rot: Math.random() * 6.28,
+        vr: (Math.random() - 0.5) * 0.24,
+        life: 1, decay: 0.012 + Math.random() * 0.02,
+        pink: Math.random() < 0.32
+      });
+    }
+    if (!burstRunning) { burstRunning = true; requestAnimationFrame(burstStep); }
+  }
+  function burstStep() {
+    if (!parts.length) { burstRunning = false; bctx.clearRect(0, 0, burstCanvas.width, burstCanvas.height); return; }
+    bctx.clearRect(0, 0, burstCanvas.width, burstCanvas.height);
+    for (var k = parts.length - 1; k >= 0; k--) {
+      var p = parts[k];
+      p.x += p.vx; p.y += p.vy;
+      p.vy += 0.05; // лёгкая гравитация
+      p.rot += p.vr;
+      p.life -= p.decay;
+      if (p.life <= 0 || p.x < -30 || p.x > burstCanvas.width + 30) { parts.splice(k, 1); continue; }
+      bctx.save();
+      bctx.globalAlpha = Math.min(p.life, 1) * 0.9;
+      bctx.translate(p.x, p.y);
+      bctx.rotate(p.rot);
+      bctx.fillStyle = p.pink ? "#d64a97" : "#4a3f56";
+      bctx.fillRect(-p.r * 2.2, -p.r * 0.8, p.r * 4.4, p.r * 1.6); // обрывки плёнки: полоски, не точки
+      bctx.restore();
+    }
+    requestAnimationFrame(burstStep);
+  }
+
+  function endReel() {
+    cinema.classList.remove("on");
+    if (beat) beat.pause();
+    var end = $("reelEnd");
+    end.classList.add("on");
+    buzz(24);
+    setTimeout(function () { end.classList.remove("on"); showResult(); }, 1500);
+  }
+
+  /* ——— результат ——— */
+  function showResult() {
+    // выходим из фулскрина — иначе ссылка на канал на телефонах не открывается
+    if (document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(function () {});
+    }
+    var total = order.length;
+    $("rTitle").innerHTML = "твой фильм — <em>" + total + " кадров</em>.";
+    var pct = function (g) { return yesTotal ? Math.round(tally[g] / yesTotal * 100) : 0; };
+    $("nOther").textContent = tally.other + (yesTotal ? " · " + pct("other") + "%" : "");
+    $("nMine").textContent = tally.mine + (yesTotal ? " · " + pct("mine") + "%" : "");
+    $("nReel").textContent = tally.reel + (yesTotal ? " · " + pct("reel") + "%" : "");
+    $("leadline").textContent = yesTotal === 0
+      ? "в этой плёнке не отмечено ни одного кадра — и это тоже честный ответ. строки ниже всё равно про тебя."
+      : "нажми на строку — расскажу, что это за фильм, и дам пост по теме.";
+    setTimeout(function () {
+      $("fOther").style.width = pct("other") + "%";
+      $("fMine").style.width = pct("mine") + "%";
+      $("fReel").style.width = pct("reel") + "%";
+    }, 250);
+    $("whatOther").textContent = TYPES.other.what;
+    $("recOther").innerHTML = TYPES.other.rec;
+    $("whatMine").textContent = TYPES.mine.what;
+    $("recMine").innerHTML = TYPES.mine.rec;
+    $("whatReel").textContent = TYPES.reel.what;
+    $("recReel").innerHTML = TYPES.reel.rec;
+
+    var pk = $("picked");
+    if (picked.length) {
+      pk.innerHTML = "<b>кадры, которые ты взял в свой фильм:</b><br>" +
+        picked.map(function (x) { return "— " + x.t; }).join("<br>");
+    } else {
+      pk.innerHTML = "<b>новых кадров не взято.</b> ты посмотрел своё кино как есть — это тоже выбор.";
+    }
+    pk.style.display = "block";
+    $("result").classList.add("on");
+  }
+
+  /* ——— аккордеон типов ——— */
+  Array.prototype.forEach.call(document.querySelectorAll(".type-cap"), function (cap) {
+    cap.addEventListener("click", function () {
+      var row = cap.parentNode;
+      var wasOpen = row.classList.contains("open");
+      Array.prototype.forEach.call(document.querySelectorAll(".type-row.open"), function (r) {
+        r.classList.remove("open");
+      });
+      if (!wasOpen) row.classList.add("open");
+    });
+  });
+
+  /* ——— управление ——— */
+  $("start").addEventListener("click", function () {
+    beat = beat || document.getElementById("beat");
+    if (beat) { beat.volume = 0.35; beat.play().catch(function () {}); connectAnalyser(); }
+    try { if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen(); } catch (e) {}
+    $("intro").classList.add("gone");
+    cinema.classList.add("on");
+    setTimeout(showFrame, 350);
+  });
+  document.addEventListener("keydown", function (e) {
+    if (!cinema.classList.contains("on")) return;
+    if (e.key === "ArrowRight") answer(true);
+    if (e.key === "ArrowLeft") answer(false);
+  });
+  $("soundBtn").addEventListener("click", function () {
+    soundOn = !soundOn;
+    this.textContent = "звук: " + (soundOn ? "вкл" : "выкл");
+    if (beat) beat.muted = !soundOn;
+  });
+  $("again").addEventListener("click", function () {
+    order = shuffle(FRAMES.slice(0, 7))
+      .concat(shuffle(NEW.slice()))
+      .concat(shuffle(FRAMES.slice(7)).concat([LAST]));
+    i = 0; tc = 0; newSeen = 0; tally = { other: 0, mine: 0, reel: 0 }; yesTotal = 0; picked = [];
+    $("picked").style.display = "none";
+    $("fOther").style.width = "0"; $("fMine").style.width = "0"; $("fReel").style.width = "0";
+    Array.prototype.forEach.call(document.querySelectorAll(".type-row.open"), function (r) {
+      r.classList.remove("open");
+    });
+    $("result").classList.remove("on");
+    $("intro").classList.remove("gone");
+    if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen();
+  });
+})();
+</script>
+</body>
+</html>

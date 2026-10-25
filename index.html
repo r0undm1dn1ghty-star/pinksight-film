@@ -228,6 +228,18 @@
   @media (prefers-reduced-motion: reduce) {
     .frame .line, #scratch, .fill, .hintDrag .arr, .type-body { animation: none !important; transition: none !important; }
   }
+
+  /* ——— визуальная сцена кадра ——— */
+  .frame .scenecv { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0.93; }
+  .frame .veil { position: absolute; inset: 0;
+    background: radial-gradient(ellipse 78% 62% at 50% 52%, rgba(8,6,14,.42), rgba(8,6,14,.72) 78%); }
+  .frame .line { position: relative; z-index: 3; color: #fff;
+    text-shadow: 0 2px 22px rgba(0,0,0,.65), 0 1px 3px rgba(0,0,0,.5); }
+  .frame .tcode { z-index: 3; color: rgba(255,255,255,.62); }
+  .frame .stamp { z-index: 3; }
+  .stamp-yes { color: #ff8ec4; border-color: #ff8ec4; }
+  .stamp-no { color: #cfc4dd; border-color: #cfc4dd; }
+  .hintDrag { z-index: 3; color: rgba(255,255,255,.7); }
 </style>
 </head>
 <body>
@@ -336,30 +348,30 @@
 
   /* ——— кадры плёнки ——— */
   var FRAMES = [
-    { t: "написал человеку. просто так, без повода.", g: "other" },
-    { t: "слушал до конца, даже когда уже знал, что ответишь.", g: "other" },
-    { t: "сделал для Другого то, о чём никто не узнает.", g: "other" },
-    { t: "сказал вслух то, что долго носил в себе.", g: "other" },
-    { t: "сел за отложенное и остался на час.", g: "mine" },
-    { t: "выбрал своё, когда удобнее было промолчать.", g: "mine" },
-    { t: "довёл одну вещь до финала — не пять до середины.", g: "mine" },
-    { t: "видел чужую дорогу — и остался на своей.", g: "mine" },
-    { t: "чай у окна. без телефона, без спешки.", g: "mine" },
-    { t: "полчаса чужих кадров. досмотрел всё.", g: "reel" },
-    { t: "сравнивал свой день с чужой витриной.", g: "reel" },
-    { t: "заметил, как минута с телефоном стала часом?", g: "reel" },
-    { t: "вечером не смог вспомнить, куда ушёл день.", g: "reel" }
+    { t: "написал человеку. просто так, без повода.", g: "other", v: "screen" },
+    { t: "слушал до конца, даже когда уже знал, что ответишь.", g: "other", v: "lamp" },
+    { t: "сделал для Другого то, о чём никто не узнает.", g: "other", v: "snow" },
+    { t: "сказал вслух то, что долго носил в себе.", g: "other", v: "window" },
+    { t: "сел за отложенное и остался на час.", g: "mine", v: "desk" },
+    { t: "выбрал своё, когда удобнее было промолчать.", g: "mine", v: "fork" },
+    { t: "довёл одну вещь до финала — не пять до середины.", g: "mine", v: "candle" },
+    { t: "видел чужую дорогу — и остался на своей.", g: "mine", v: "path" },
+    { t: "чай у окна. без телефона, без спешки.", g: "mine", v: "tea" },
+    { t: "полчаса чужих кадров. досмотрел всё.", g: "reel", v: "scroll" },
+    { t: "сравнивал свой день с чужой витриной.", g: "reel", v: "shop" },
+    { t: "заметил, как минута с телефоном стала часом?", g: "reel", v: "clock" },
+    { t: "вечером не смог вспомнить, куда ушёл день.", g: "reel", v: "fog" }
   ];
-  var LAST = { t: "был там, где ты — минута, без экрана и без никого", g: "mine" };
+  var LAST = { t: "был там, где ты — минута, без экрана и без никого", g: "mine", v: "stars" };
 
   /* ——— новые кадры: свободные оси, не дублируют кадры дня (см. КАТАЛОГ-КАДРОВ.md) ——— */
   var NEW = [
-    { t: "попросить о помощи — вслух, без «мне неудобно».", g: "other", n: true },
-    { t: "сказать «нет» и не извиниться за это.", g: "other", n: true },
-    { t: "заговорить с незнакомым человеком первым.", g: "other", n: true },
-    { t: "сделать что-то руками — приготовить, собрать, починить.", g: "mine", n: true },
-    { t: "выйти из дома без цели и маршрута.", g: "mine", n: true },
-    { t: "вернуться туда, где давно не был.", g: "mine", n: true }
+    { t: "попросить о помощи — вслух, без «мне неудобно».", g: "other", n: true, v: "lamp" },
+    { t: "сказать «нет» и не извиниться за это.", g: "other", n: true, v: "window" },
+    { t: "заговорить с незнакомым человеком первым.", g: "other", n: true, v: "city" },
+    { t: "сделать что-то руками — приготовить, собрать, починить.", g: "mine", n: true, v: "desk" },
+    { t: "выйти из дома без цели и маршрута.", g: "mine", n: true, v: "path" },
+    { t: "вернуться туда, где давно не был.", g: "mine", n: true, v: "window" }
   ];
 
   /* ——— расшифровки и посты по типам фильма ——— */
@@ -505,6 +517,242 @@
     }, 70);
   }
 
+
+  /* ——— движок атмосферных сцен ——— */
+  var sceneCtx = null, sceneRAF = null, sceneT = 0, sceneType = "", sceneW = 0, sceneH = 0, flakes = [];
+  function sceneInit(cv) {
+    sceneCtx = cv.getContext("2d");
+    sceneW = cv.width = Math.max(320, Math.round(cv.clientWidth || window.innerWidth));
+    sceneH = cv.height = Math.max(240, Math.round(cv.clientHeight || window.innerHeight * 0.7));
+    flakes = [];
+    for (var k = 0; k < 46; k++) flakes.push({ x: Math.random(), y: Math.random(),
+      s: 1.2 + Math.random() * 2.6, v: 0.0008 + Math.random() * 0.0026, ph: Math.random() * 6.28 });
+  }
+  function grad(ctx, stops) {
+    var g = ctx.createLinearGradient(0, 0, 0, sceneH);
+    stops.forEach(function (s) { g.addColorStop(s[0], s[1]); });
+    return g;
+  }
+  function drawScene(type) {
+    if (!sceneCtx) return;
+    var ctx = sceneCtx, W = sceneW, H = sceneH, t = sceneT;
+    sceneType = type;
+    // база — ночное небо/комната
+    var palettes = {
+      screen: ["#07060c", "#0d0a16", "#140d1e"],
+      snow:   ["#101828", "#1a2438", "#26324a"],
+      lamp:   ["#0d0806", "#1a1008", "#241609"],
+      window: ["#0a0d18", "#121a2c", "#1b2440"],
+      desk:   ["#0b080e", "#161020", "#1e1630"],
+      fork:   ["#0a0812", "#141024", "#1d1836"],
+      candle: ["#0c0708", "#180e0e", "#221414"],
+      path:   ["#0a0c14", "#141a28", "#1e2636"],
+      tea:    ["#0c0a10", "#171320", "#201a2c"],
+      scroll: ["#08070e", "#101020", "#181830"],
+      shop:   ["#0a0810", "#151020", "#1e1830"],
+      clock:  ["#0a0a0e", "#141418", "#1c1c24"],
+      fog:    ["#0b0a10", "#16141c", "#1e1c28"],
+      stars:  ["#05050c", "#0b0a1a", "#12102a"],
+      city:   ["#080810", "#121224", "#1a1a30"]
+    };
+    var p = palettes[type] || palettes.stars;
+    ctx.fillStyle = grad(ctx, [[0, p[0]], [0.55, p[1]], [1, p[2]]]);
+    ctx.fillRect(0, 0, W, H);
+
+    if (type === "stars" || type === "fog") {
+      if (type === "fog") {
+        // расплывающийся день: пятна вместо звёзд
+        for (var fg = 0; fg < 7; fg++) {
+          var fx0 = W * (0.14 + fg * 0.12), fy0 = H * (0.26 + ((fg * 37) % 44) / 100);
+          var frad = 70 + (fg % 3) * 46;
+          var fgr = ctx.createRadialGradient(fx0, fy0, 2, fx0, fy0, frad);
+          fgr.addColorStop(0, "rgba(190,180,215," + (0.10 + 0.05 * Math.sin(t * 0.0007 + fg)) + ")");
+          fgr.addColorStop(1, "rgba(190,180,215,0)");
+          ctx.fillStyle = fgr; ctx.fillRect(fx0 - frad, fy0 - frad, frad * 2, frad * 2);
+        }
+      } else {
+        for (var k = 0; k < 90; k++) {
+          var sx = ((k * 137.5) % 100) / 100 * W, sy = ((k * 71.3) % 55) / 100 * H;
+          var tw = 0.35 + 0.65 * Math.abs(Math.sin(t * 0.0009 + k));
+          ctx.globalAlpha = tw * 0.75;
+          ctx.fillStyle = "#fff";
+          ctx.fillRect(sx, sy, 1.6, 1.6);
+        }
+        ctx.globalAlpha = 1;
+        var mx = W * 0.72, my = H * 0.22;
+        var mg = ctx.createRadialGradient(mx, my, 2, mx, my, 70);
+        mg.addColorStop(0, "rgba(255,240,220,.85)"); mg.addColorStop(1, "rgba(255,240,220,0)");
+        ctx.fillStyle = mg; ctx.fillRect(mx - 80, my - 80, 160, 160);
+      }
+    }
+    if (type === "snow" || type === "window") {
+      // рама окна
+      ctx.strokeStyle = "rgba(220,225,240,.20)"; ctx.lineWidth = 7;
+      ctx.strokeRect(W * 0.16, H * 0.10, W * 0.68, H * 0.62);
+      ctx.beginPath(); ctx.moveTo(W * 0.5, H * 0.10); ctx.lineTo(W * 0.5, H * 0.72);
+      ctx.moveTo(W * 0.16, H * 0.41); ctx.lineTo(W * 0.84, H * 0.41); ctx.stroke();
+      // ветки за стеклом
+      ctx.strokeStyle = "rgba(180,190,215,.16)"; ctx.lineWidth = 2;
+      for (var b = 0; b < 5; b++) {
+        var bx = W * (0.2 + b * 0.14), by = H * 0.66;
+        ctx.beginPath(); ctx.moveTo(bx, by);
+        ctx.quadraticCurveTo(bx + 22, by - 60, bx + 46, by - 96); ctx.stroke();
+      }
+      if (type === "snow") {
+        flakes.forEach(function (f) {
+          f.y += f.v * 16; if (f.y > 1) { f.y = -0.02; f.x = Math.random(); }
+          var fx = W * (0.17 + f.x * 0.66), fy = H * (0.10 + f.y * 0.62);
+          ctx.globalAlpha = 0.5 + f.s * 0.2;
+          ctx.fillStyle = "#eef4ff";
+          ctx.beginPath(); ctx.arc(fx, fy, f.s, 0, 6.29); ctx.fill();
+        });
+        ctx.globalAlpha = 1;
+      }
+      if (type === "window") {
+        // капли на стекле, а не снег
+        ctx.fillStyle = "rgba(200,220,255,.32)";
+        for (var dp = 0; dp < 26; dp++) {
+          var dxp = W * (0.18 + ((dp * 53) % 64) / 100), dyp = H * (0.12 + ((dp * 29) % 58) / 100);
+          ctx.beginPath(); ctx.ellipse(dxp, dyp + Math.sin(t * 0.0012 + dp) * 3, 2.1, 3.4, 0, 0, 6.29); ctx.fill();
+        }
+      }
+    }
+    if (type === "screen" || type === "scroll" || type === "shop") {
+      var pulse = 0.5 + 0.5 * Math.sin(t * 0.0016);
+      if (type === "screen") {
+        var gx = W * 0.5, gy = H * 0.52;
+        var lg = ctx.createRadialGradient(gx, gy, 4, gx, gy, W * 0.42);
+        lg.addColorStop(0, "rgba(150,200,255," + (0.42 + pulse * 0.2) + ")");
+        lg.addColorStop(1, "rgba(150,200,255,0)");
+        ctx.fillStyle = lg; ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = "rgba(190,225,255,.85)";
+        ctx.fillRect(W * 0.43, H * 0.44, W * 0.14, H * 0.20);
+      } else if (type === "scroll") {
+        for (var r = 0; r < 7; r++) {
+          var ry = H * (0.16 + r * 0.09);
+          ctx.fillStyle = "rgba(190,215,255," + (0.10 + 0.16 * Math.abs(Math.sin(t * 0.001 + r))) + ")";
+          ctx.fillRect(W * 0.18, ry, W * (0.5 + (r % 3) * 0.08), 9);
+        }
+      } else {
+        for (var s = 0; s < 5; s++) {
+          ctx.fillStyle = "rgba(255,205,150," + (0.14 + 0.2 * Math.abs(Math.sin(t * 0.0013 + s * 1.7))) + ")";
+          ctx.fillRect(W * (0.12 + s * 0.17), H * 0.32, W * 0.11, H * 0.30);
+        }
+      }
+    }
+    if (type === "lamp" || type === "desk" || type === "tea" || type === "candle") {
+      var lx = W * 0.5, ly = type === "candle" ? H * 0.56 : H * 0.34;
+      var rad = type === "candle" ? 90 : W * 0.36;
+      var flick = 0.86 + 0.14 * Math.sin(t * 0.006);
+      var wg = ctx.createRadialGradient(lx, ly, 3, lx, ly, rad);
+      wg.addColorStop(0, "rgba(255,205,140," + (0.5 * flick) + ")");
+      wg.addColorStop(0.5, "rgba(255,170,90," + (0.16 * flick) + ")");
+      wg.addColorStop(1, "rgba(255,150,80,0)");
+      ctx.fillStyle = wg; ctx.fillRect(0, 0, W, H);
+      if (type === "candle") {
+        ctx.fillStyle = "rgba(240,230,215,.85)";
+        ctx.fillRect(lx - 5, ly + 6, 10, 54);
+        ctx.beginPath(); ctx.ellipse(lx, ly + 2, 5, 9, 0, 0, 6.29);
+        ctx.fillStyle = "rgba(255,215,150,.95)"; ctx.fill();
+      } else if (type === "lamp") {
+        // двое за столом: слушаешь — значит, кто-то говорит
+        ctx.fillStyle = "rgba(14,10,8,.94)";
+        ctx.beginPath(); ctx.arc(W * 0.33, H * 0.54, 25, 0, 6.29); ctx.fill();
+        ctx.beginPath(); ctx.arc(W * 0.67, H * 0.52, 25, 0, 6.29); ctx.fill();
+        ctx.fillRect(W * 0.28, H * 0.60, W * 0.11, H * 0.24);
+        ctx.fillRect(W * 0.62, H * 0.58, W * 0.11, H * 0.26);
+        ctx.fillStyle = "rgba(255,215,165,.30)";
+        ctx.fillRect(W * 0.22, H * 0.80, W * 0.56, 3);
+      } else {
+        ctx.fillStyle = "rgba(16,12,10,.92)";
+        ctx.fillRect(W * 0.22, H * 0.66, W * 0.56, H * 0.06);   // стол
+        ctx.fillStyle = "rgba(255,225,180,.55)";
+        if (type === "tea") {
+          ctx.beginPath(); ctx.ellipse(W * 0.5, H * 0.645, 26, 9, 0, 0, 6.29); ctx.fill();
+          ctx.strokeStyle = "rgba(255,235,215,.28)"; ctx.lineWidth = 2;
+          for (var pv = 0; pv < 3; pv++) {
+            ctx.beginPath();
+            var py0 = H * 0.62 - pv * 16, drift = Math.sin(t * 0.0016 + pv) * 9;
+            ctx.moveTo(W * 0.5 + drift, py0);
+            ctx.quadraticCurveTo(W * 0.5 + drift + 9, py0 - 20, W * 0.5 + drift, py0 - 40);
+            ctx.stroke();
+          }
+        } else {
+          // desk: лампа над столом и раскрытая тетрадь
+          ctx.fillStyle = "rgba(18,14,22,.95)";
+          ctx.fillRect(W * 0.40, H * 0.70, W * 0.24, H * 0.10);
+          ctx.fillStyle = "rgba(255,235,200,.40)";
+          ctx.fillRect(W * 0.42, H * 0.71, W * 0.20, H * 0.075);
+          ctx.fillStyle = "rgba(255,225,180,.55)";
+          ctx.fillRect(W * 0.5 - 3, H * 0.42, 6, 30);
+          ctx.beginPath(); ctx.moveTo(W * 0.5 - 34, H * 0.46); ctx.lineTo(W * 0.5 + 34, H * 0.46);
+          ctx.lineWidth = 5; ctx.strokeStyle = "rgba(255,210,160,.35)"; ctx.stroke();
+        }
+      }
+    }
+    if (type === "fork") {
+      ctx.strokeStyle = "rgba(230,215,245,.45)"; ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(W * 0.5, H * 0.78);
+      ctx.quadraticCurveTo(W * 0.5, H * 0.5, W * 0.28, H * 0.22);
+      ctx.moveTo(W * 0.5, H * 0.78);
+      ctx.quadraticCurveTo(W * 0.5, H * 0.5, W * 0.74, H * 0.22);
+      ctx.stroke();
+      ctx.strokeStyle = "rgba(255,150,200,.5)";
+      ctx.beginPath(); ctx.moveTo(W * 0.5, H * 0.78);
+      ctx.quadraticCurveTo(W * 0.5, H * 0.46, W * 0.6, H * 0.16);
+      ctx.stroke();
+    }
+    if (type === "path" || type === "city") {
+      ctx.fillStyle = "rgba(6,6,12,.85)";
+      if (type === "path") {
+        ctx.beginPath(); ctx.moveTo(0, H * 0.74); ctx.lineTo(W, H * 0.70);
+        ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = "rgba(255,170,210,.35)"; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(W * 0.46, H * 0.72);
+        ctx.quadraticCurveTo(W * 0.5, H * 0.85, W * 0.52, H); ctx.stroke();
+      } else {
+        for (var hx = 0; hx < 14; hx++) {
+          var bh = H * (0.18 + ((hx * 37) % 30) / 100);
+          var bw = W / 14;
+          ctx.fillRect(hx * bw, H * 0.74 - bh, bw - 3, bh + H * 0.26);
+          for (var wy = 0; wy < 4; wy++) {
+            ctx.fillStyle = "rgba(255,215,160," + (0.25 + 0.4 * Math.abs(Math.sin(t * 0.0011 + hx + wy))) + ")";
+            ctx.fillRect(hx * bw + 4, H * 0.74 - bh + 12 + wy * 22, 6, 9);
+            ctx.fillStyle = "rgba(6,6,12,.85)";
+          }
+        }
+      }
+    }
+    if (type === "clock") {
+      var cx = W * 0.5, cy = H * 0.5, R = Math.min(W, H) * 0.22;
+      ctx.strokeStyle = "rgba(230,225,240,.35)"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(cx, cy, R, 0, 6.29); ctx.stroke();
+      for (var m = 0; m < 12; m++) {
+        var a = m / 12 * 6.283 - 1.571;
+        ctx.beginPath();
+        ctx.moveTo(cx + Math.cos(a) * R * 0.88, cy + Math.sin(a) * R * 0.88);
+        ctx.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R);
+        ctx.stroke();
+      }
+      ctx.strokeStyle = "rgba(255,150,200,.75)"; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(t * 0.0009) * R * 0.6, cy + Math.sin(t * 0.0009) * R * 0.6);
+      ctx.stroke();
+    }
+  }
+  function sceneLoop() {
+    sceneT += 16;
+    drawScene(sceneType);
+    sceneRAF = requestAnimationFrame(sceneLoop);
+  }
+  function sceneStart(type, cv) {
+    if (sceneRAF) { cancelAnimationFrame(sceneRAF); sceneRAF = null; }
+    sceneInit(cv);
+    drawScene(type);
+    if (!reduced) sceneRAF = requestAnimationFrame(sceneLoop);
+  }
+
   /* ——— показ кадров ——— */
   function pad2(n) { return (n < 10 ? "0" : "") + n; }
   var dragHinted = false;
@@ -514,6 +762,11 @@
     frameArea.innerHTML = "";
     var el = document.createElement("div");
     el.className = "frame";
+    var cv = document.createElement("canvas");
+    cv.className = "scenecv";
+    var veil = document.createElement("div");
+    veil.className = "veil";
+    el.appendChild(cv); el.appendChild(veil);
     var line = document.createElement("div");
     line.className = "line";
     line.textContent = f.t;
@@ -540,6 +793,7 @@
       el.appendChild(hint);
     }
     frameArea.appendChild(el);
+    sceneStart(f.v || "stars", cv);
     // строка кадра дышит с битом: лёгкий масштаб-пульс, затухающий к статике
     if (!reduced) {
       var lineEl = el.querySelector(".line");
