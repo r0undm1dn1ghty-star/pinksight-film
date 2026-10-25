@@ -201,6 +201,10 @@
   .type-body .rec a { color: var(--pink); text-decoration: none; border-bottom: 1px solid rgba(214,74,151,0.35); transition: border-color 0.2s, color 0.2s; }
   .type-body .rec a:hover { color: var(--pink-hot); border-color: var(--pink-hot); }
 
+  .picked { margin-top: 26px; padding: 18px 20px; border: 1px solid var(--line); background: #fff;
+    font-size: 14.5px; line-height: 1.7; color: var(--soft); }
+  .picked b { color: var(--ink); font-weight: 600; display: inline-block; margin-bottom: 6px; }
+
   .subscribe {
     margin-top: 36px; padding: 20px 22px;
     border: 1px solid var(--line); background: #fff;
@@ -233,9 +237,9 @@
 <section id="intro" class="dvh">
   <div class="mark">розовый взгляд <b>👁</b> плёнка №1</div>
   <h1>фильм, где ты <em>главный герой</em></h1>
-  <p class="lead">вспомни свой вчерашний день. дальше — 14 кадров: тяни кадр вправо — «было», влево — «не было». можно просто тапнуть по своей половине экрана. правильных ответов нет — это твой фильм. мы посмотрим, где в нём ты.</p>
+  <p class="lead">вспомни свой вчерашний день. дальше — кадры: тяни вправо — «было», влево — «не было». а в середине выпадут новые кадры — те, которых у тебя не было: их можно взять в свой фильм или пропустить. правильных ответов нет — это твой фильм.</p>
   <button id="start">запустить плёнку →</button>
-  <p class="fine">14 кадров · минута тишины · страница ничего не отправляет и не запоминает</p>
+  <p class="fine">14 кадров дня + 6 новых · минута тишины · страница ничего не отправляет и не запоминает</p>
 </section>
 
 <!-- монтажная -->
@@ -314,6 +318,8 @@
       </div>
     </div>
 
+    <div class="picked" id="picked" style="display:none"></div>
+
     <div class="subscribe">
       <p class="s-lead">этот фильм — из розового взгляда 👀<br>в канале — такие же фильмы, только текстом.</p>
       <a id="tgLink" href="https://t.me/p1nks1ght" target="_blank" rel="noopener">подписаться на канал →</a>
@@ -346,6 +352,16 @@
   ];
   var LAST = { t: "был там, где ты — минута, без экрана и без никого", g: "mine" };
 
+  /* ——— новые кадры: чего у тебя не было, но что можно взять в свой фильм ——— */
+  var NEW = [
+    { t: "написать тому, кому давно хотел — просто так.", g: "other", n: true },
+    { t: "сказать вслух то, что носишь уже месяц.", g: "other", n: true },
+    { t: "позвонить вместо сообщения.", g: "other", n: true },
+    { t: "провести вечер без экрана — целиком.", g: "mine", n: true },
+    { t: "сделать то, что откладывал дольше всего.", g: "mine", n: true },
+    { t: "выйти и дойти туда, где давно не был.", g: "mine", n: true }
+  ];
+
   /* ——— расшифровки и посты по типам фильма ——— */
   var TG = "https://t.me/p1nks1ght/";
   var TYPES = {
@@ -363,10 +379,13 @@
     }
   };
 
-  var order = shuffle(FRAMES.slice()).concat([LAST]);
-  var i = 0, tc = 0;
+  var order = shuffle(FRAMES.slice(0, 7))
+    .concat(shuffle(NEW.slice()))
+    .concat(shuffle(FRAMES.slice(7)).concat([LAST]));
+  var i = 0, tc = 0, newSeen = 0;
   var tally = { other: 0, mine: 0, reel: 0 };
   var yesTotal = 0;
+  var picked = [];
 
   var $ = function (id) { return document.getElementById(id); };
   var cinema = $("cinema"), frameArea = $("frameArea"), cut = $("cut");
@@ -502,11 +521,18 @@
     tcode.className = "tcode";
     tcode.textContent = "кадр " + pad2(i + 1) + " · " + tcodeStr(tc);
     var sy = document.createElement("div");
-    sy.className = "stamp stamp-yes"; sy.textContent = "было";
     var sn = document.createElement("div");
-    sn.className = "stamp stamp-no"; sn.textContent = "не было";
+    var isNew = !!f.n;
+    if (isNew) {
+      newSeen++;
+      sy.className = "stamp stamp-yes"; sy.textContent = "беру";
+      sn.className = "stamp stamp-no"; sn.textContent = "мимо";
+    } else {
+      sy.className = "stamp stamp-yes"; sy.textContent = "было";
+      sn.className = "stamp stamp-no"; sn.textContent = "не было";
+    }
     el.appendChild(line); el.appendChild(tcode); el.appendChild(sy); el.appendChild(sn);
-    if (!dragHinted) {
+    if (!dragHinted && !isNew) {
       dragHinted = true;
       var hint = document.createElement("div");
       hint.className = "hintDrag";
@@ -527,7 +553,11 @@
       }, 90);
     }
     $("timecode").textContent = tcodeStr(tc);
-    $("counter").textContent = "кадр " + pad2(i + 1) + " / 14";
+    if (isNew) {
+      $("counter").textContent = "новый " + pad2(newSeen) + " / " + pad2(NEW.length);
+    } else {
+      $("counter").textContent = "кадр " + pad2(i + 1) + " / " + pad2(order.length);
+    }
     cut.classList.remove("flash");
     void cut.offsetWidth;
     cut.classList.add("flash");
@@ -613,7 +643,10 @@
     }
     card.querySelector(".stamp-yes").style.opacity = yes ? 1 : 0;
     card.querySelector(".stamp-no").style.opacity = yes ? 0 : 1;
-    if (yes) { tally[f.g]++; yesTotal++; buzz(14); }
+    if (yes) {
+      if (f.n) { picked.push(f); buzz(14); }
+      else { tally[f.g]++; yesTotal++; buzz(14); }
+    }
     i++;
     if (i < order.length) {
       setTimeout(function () { locked = false; showFrame(); }, 240);
@@ -717,6 +750,15 @@
     $("recMine").innerHTML = TYPES.mine.rec;
     $("whatReel").textContent = TYPES.reel.what;
     $("recReel").innerHTML = TYPES.reel.rec;
+
+    var pk = $("picked");
+    if (picked.length) {
+      pk.innerHTML = "<b>кадры, которые ты взял в свой фильм:</b><br>" +
+        picked.map(function (x) { return "— " + x.t; }).join("<br>");
+    } else {
+      pk.innerHTML = "<b>новых кадров не взято.</b> ты посмотрел своё кино как есть — это тоже выбор.";
+    }
+    pk.style.display = "block";
     $("result").classList.add("on");
   }
 
@@ -752,8 +794,11 @@
     if (beat) beat.muted = !soundOn;
   });
   $("again").addEventListener("click", function () {
-    order = shuffle(FRAMES.slice()).concat([LAST]);
-    i = 0; tc = 0; tally = { other: 0, mine: 0, reel: 0 }; yesTotal = 0;
+    order = shuffle(FRAMES.slice(0, 7))
+      .concat(shuffle(NEW.slice()))
+      .concat(shuffle(FRAMES.slice(7)).concat([LAST]));
+    i = 0; tc = 0; newSeen = 0; tally = { other: 0, mine: 0, reel: 0 }; yesTotal = 0; picked = [];
+    $("picked").style.display = "none";
     $("fOther").style.width = "0"; $("fMine").style.width = "0"; $("fReel").style.width = "0";
     Array.prototype.forEach.call(document.querySelectorAll(".type-row.open"), function (r) {
       r.classList.remove("open");
