@@ -348,30 +348,30 @@
 
   /* ——— кадры плёнки ——— */
   var FRAMES = [
-    { t: "написал человеку. просто так, без повода.", g: "other", v: "screen" },
-    { t: "слушал до конца, даже когда уже знал, что ответишь.", g: "other", v: "lamp" },
-    { t: "сделал для Другого то, о чём никто не узнает.", g: "other", v: "snow" },
-    { t: "сказал вслух то, что долго носил в себе.", g: "other", v: "window" },
-    { t: "сел за отложенное и остался на час.", g: "mine", v: "desk" },
-    { t: "выбрал своё, когда удобнее было промолчать.", g: "mine", v: "fork" },
-    { t: "довёл одну вещь до финала — не пять до середины.", g: "mine", v: "candle" },
-    { t: "видел чужую дорогу — и остался на своей.", g: "mine", v: "path" },
-    { t: "чай у окна. без телефона, без спешки.", g: "mine", v: "tea" },
-    { t: "полчаса чужих кадров. досмотрел всё.", g: "reel", v: "scroll" },
-    { t: "сравнивал свой день с чужой витриной.", g: "reel", v: "shop" },
-    { t: "заметил, как минута с телефоном стала часом?", g: "reel", v: "clock" },
-    { t: "вечером не смог вспомнить, куда ушёл день.", g: "reel", v: "fog" }
+    { t: "написал человеку. просто так, без повода.", g: "other", img: "scenes/01-napisal.jpg" },
+    { t: "слушал до конца, даже когда уже знал, что ответишь.", g: "other", img: "scenes/02-slushal.jpg" },
+    { t: "сделал для Другого то, о чём никто не узнает.", g: "other", img: "scenes/03-sneg.jpg" },
+    { t: "сказал вслух то, что долго носил в себе.", g: "other", img: "scenes/04-dozhd.jpg" },
+    { t: "сел за отложенное и остался на час.", g: "mine", img: "scenes/05-stol.jpg" },
+    { t: "выбрал своё, когда удобнее было промолчать.", g: "mine", img: "scenes/06-vybor.jpg" },
+    { t: "довёл одну вещь до финала — не пять до середины.", g: "mine", img: "scenes/07-svecha.jpg" },
+    { t: "видел чужую дорогу — и остался на своей.", g: "mine", img: "scenes/08-doroga.jpg" },
+    { t: "чай у окна. без телефона, без спешки.", g: "mine", img: "scenes/09-chai.jpg" },
+    { t: "полчаса чужих кадров. досмотрел всё.", g: "reel", img: "scenes/10-ekran.jpg" },
+    { t: "сравнивал свой день с чужой витриной.", g: "reel", img: "scenes/11-vitrina.jpg" },
+    { t: "заметил, как минута с телефоном стала часом?", g: "reel", img: "scenes/12-telefon.jpg" },
+    { t: "вечером не смог вспомнить, куда ушёл день.", g: "reel", img: "scenes/13-tuman.jpg" }
   ];
-  var LAST = { t: "был там, где ты — минута, без экрана и без никого", g: "mine", v: "stars" };
+  var LAST = { t: "был там, где ты — минута, без экрана и без никого", g: "mine", img: "scenes/14-zvezdy.jpg" };
 
   /* ——— новые кадры: свободные оси, не дублируют кадры дня (см. КАТАЛОГ-КАДРОВ.md) ——— */
   var NEW = [
-    { t: "попросить о помощи — вслух, без «мне неудобно».", g: "other", n: true, v: "lamp" },
-    { t: "сказать «нет» и не извиниться за это.", g: "other", n: true, v: "window" },
-    { t: "заговорить с незнакомым человеком первым.", g: "other", n: true, v: "city" },
-    { t: "сделать что-то руками — приготовить, собрать, починить.", g: "mine", n: true, v: "desk" },
-    { t: "выйти из дома без цели и маршрута.", g: "mine", n: true, v: "path" },
-    { t: "вернуться туда, где давно не был.", g: "mine", n: true, v: "window" }
+    { t: "попросить о помощи — вслух, без «мне неудобно».", g: "other", n: true, img: "scenes/15-pomoshch.jpg" },
+    { t: "сказать «нет» и не извиниться за это.", g: "other", n: true, img: "scenes/16-dver.jpg" },
+    { t: "заговорить с незнакомым человеком первым.", g: "other", n: true, img: "scenes/17-ulitsa.jpg" },
+    { t: "сделать что-то руками — приготовить, собрать, починить.", g: "mine", n: true, img: "scenes/18-ruki.jpg" },
+    { t: "выйти из дома без цели и маршрута.", g: "mine", n: true, img: "scenes/19-dvor.jpg" },
+    { t: "вернуться туда, где давно не был.", g: "mine", n: true, img: "scenes/20-podezd.jpg" }
   ];
 
   /* ——— расшифровки и посты по типам фильма ——— */
@@ -753,6 +753,60 @@
     if (!reduced) sceneRAF = requestAnimationFrame(sceneLoop);
   }
 
+
+  /* ——— ascii-кадр: снимок, напечатанный символами ——— */
+  var AC = {
+    chars: " .:-=+*#%@",
+    cwTarget: 9,
+    cache: {},
+    started: {}
+  };
+  function asciiStart(path, cv, fallbackType) {
+    function run(img) {
+      var W = cv.clientWidth || 420, H = cv.clientHeight || 700;
+      var cw = AC.cwTarget;
+      var cols = Math.max(36, Math.round(W / cw));
+      var ch = Math.round(cw * 1.72);
+      var rows = Math.max(24, Math.floor(H / ch));
+      cv.width = cols * cw;
+      cv.height = rows * ch;
+      var ctx = cv.getContext("2d");
+      ctx.fillStyle = "#06050a";
+      ctx.fillRect(0, 0, cv.width, cv.height);
+      var oc = document.createElement("canvas");
+      oc.width = cols; oc.height = rows;
+      var octx = oc.getContext("2d");
+      octx.drawImage(img, 0, 0, cols, rows);
+      var d = octx.getImageData(0, 0, cols, rows).data;
+      ctx.font = Math.round(ch * 0.94) + "px 'Consolas','DejaVu Sans Mono',monospace";
+      ctx.textBaseline = "middle";
+      var chars = AC.chars;
+      for (var y = 0; y < rows; y++) {
+        for (var x = 0; x < cols; x++) {
+          var i = (y * cols + x) * 4;
+          var lum = (d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114) / 255;
+          lum = lum * lum * (3 - 2 * lum);
+          lum = Math.pow(lum, 1.15);
+          var im = Math.min(chars.length - 1, Math.floor(lum * chars.length * 1.15));
+          var c = chars[im];
+          if (c === " ") continue;
+          ctx.fillStyle = lum > 0.62 ? "rgba(252,220,238,.97)"
+                        : lum > 0.34 ? "rgba(219,132,188,.9)"
+                        : "rgba(136,76,128,.55)";
+          ctx.fillText(c, x * cw, y * ch + ch / 2);
+        }
+      }
+    }
+    if (AC.cache[path]) { run(AC.cache[path]); return; }
+    var im = new Image();
+    im.onload = function () { AC.cache[path] = im; run(im); };
+    im.onerror = function () {
+      // снимок не пришёл — рисуем прежнюю сцену кодом, чтобы кадр не остался пустым
+      if (sceneCtx) { sceneStart(fallbackType || "stars", cv); }
+    };
+    im.src = path;
+  }
+
   /* ——— показ кадров ——— */
   function pad2(n) { return (n < 10 ? "0" : "") + n; }
   var dragHinted = false;
@@ -793,7 +847,7 @@
       el.appendChild(hint);
     }
     frameArea.appendChild(el);
-    sceneStart(f.v || "stars", cv);
+    asciiStart(f.img || "scenes/14-zvezdy.jpg", cv, f.v || "stars");
     // строка кадра дышит с битом: лёгкий масштаб-пульс, затухающий к статике
     if (!reduced) {
       var lineEl = el.querySelector(".line");
