@@ -91,17 +91,17 @@
   .zone-hint { display: flex; gap: 26px; }
 
   /* ——— кадр ——— */
-  #frameArea { position: absolute; top: 11vh; bottom: 11vh; left: 0; right: 0;
+  #frameArea { position: absolute; top: 0; bottom: 0; left: 0; right: 0;
     touch-action: none; user-select: none; -webkit-user-select: none; cursor: grab; }
   #frameArea:active { cursor: grabbing; }
   .frame {
-    position: absolute; inset: 0;
+    position: absolute; inset: 0; z-index: 2;
     display: flex; align-items: center; justify-content: center;
-    padding: 0 24px; text-align: center;
-    background:
-      radial-gradient(ellipse 85% 70% at 50% 42%, #fffdfb, var(--paper) 94%);
+    padding: 0 26px; text-align: center;
+    background: #0f0a14;
     will-change: transform;
   }
+  .frame.next { z-index: 0; }
   .frame.spring { transition: transform 0.34s cubic-bezier(0.2, 0.8, 0.3, 1.25); }
   .frame.fly { transition: transform 0.26s ease-in, opacity 0.26s ease-in; opacity: 0; }
   .frame .line {
@@ -152,7 +152,7 @@
   @keyframes cutFlash { 0% { opacity: 0.16; } 100% { opacity: 0; } }
   #scratch {
     position: fixed; top: 0; bottom: 0; width: 1px; z-index: 14; pointer-events: none;
-    background: rgba(43,34,51,0.08); animation: crawl 9s linear infinite;
+    background: rgba(43,34,51,0.045); animation: crawl 14s linear infinite;
   }
   @keyframes crawl { from { left: -2%; } to { left: 102%; } }
 
@@ -810,12 +810,10 @@
   /* ——— показ кадров ——— */
   function pad2(n) { return (n < 10 ? "0" : "") + n; }
   var dragHinted = false;
-  function showFrame() {
-    var f = order[i];
-    tc += 1.2 + Math.random() * 1.6;
-    frameArea.innerHTML = "";
+  function buildFrame(f, idx) {
     var el = document.createElement("div");
     el.className = "frame";
+    el.dataset.idx = idx;
     var cv = document.createElement("canvas");
     cv.className = "scenecv";
     var veil = document.createElement("div");
@@ -824,44 +822,76 @@
     var line = document.createElement("div");
     line.className = "line";
     line.textContent = f.t;
-    var tcode = document.createElement("div");
-    tcode.className = "tcode";
-    tcode.textContent = "кадр " + pad2(i + 1) + " · " + tcodeStr(tc);
+    el.appendChild(line);
+    var isNew = !!f.n;
     var sy = document.createElement("div");
     var sn = document.createElement("div");
-    var isNew = !!f.n;
     if (isNew) {
-      newSeen++;
       sy.className = "stamp stamp-yes"; sy.textContent = "беру";
       sn.className = "stamp stamp-no"; sn.textContent = "мимо";
     } else {
       sy.className = "stamp stamp-yes"; sy.textContent = "было";
       sn.className = "stamp stamp-no"; sn.textContent = "не было";
     }
-    el.appendChild(line); el.appendChild(tcode); el.appendChild(sy); el.appendChild(sn);
-    if (!dragHinted && !isNew) {
+    el.appendChild(sy); el.appendChild(sn);
+    asciiStart(f.img || "scenes/14-zvezdy.jpg", cv, f.v || "stars");
+    return el;
+  }
+
+  var nextEl = null;
+  function showFrame() {
+    var f = order[i];
+    tc += 1.2 + Math.random() * 1.6;
+    var cur;
+    if (nextEl && Number(nextEl.dataset.idx) === i) {
+      cur = nextEl;
+      cur.classList.remove("next");
+      cur.style.zIndex = "";
+    } else {
+      if (nextEl) { nextEl.remove(); nextEl = null; }
+      cur = buildFrame(f, i);
+      frameArea.appendChild(cur);
+    }
+    // текущий кадр — всегда первый: с ним работает свайп
+    frameArea.insertBefore(cur, frameArea.firstChild);
+    if (f.n) newSeen++;
+    // выкинуть всё, кроме текущего и подложки
+    Array.prototype.slice.call(frameArea.querySelectorAll(".frame")).forEach(function (el) {
+      if (el !== cur && el !== nextEl) el.remove();
+    });
+    // подложить следующий кадр — чтобы за улетающим не было пустого фона
+    if (i + 1 < order.length) {
+      nextEl = buildFrame(order[i + 1], i + 1);
+      nextEl.classList.add("next");
+      frameArea.appendChild(nextEl);
+    } else {
+      nextEl = null;
+    }
+    // подпись кадра и таймкод — на текущем
+    var tcode = document.createElement("div");
+    tcode.className = "tcode";
+    tcode.textContent = "кадр " + pad2(i + 1) + " · " + tcodeStr(tc);
+    cur.appendChild(tcode);
+    if (!dragHinted && !f.n) {
       dragHinted = true;
       var hint = document.createElement("div");
       hint.className = "hintDrag";
       hint.innerHTML = '<span class="arr arr-l">←</span> &nbsp;тяни кадр или тапни по своей половине&nbsp; <span class="arr arr-r">→</span>';
-      el.appendChild(hint);
+      cur.appendChild(hint);
     }
-    frameArea.appendChild(el);
-    asciiStart(f.img || "scenes/14-zvezdy.jpg", cv, f.v || "stars");
-    // строка кадра дышит с битом: лёгкий масштаб-пульс, затухающий к статике
+    // строка кадра дышит с битом
     if (!reduced) {
-      var lineEl = el.querySelector(".line");
+      var lineEl = cur.querySelector(".line");
       var pulseTick = 0;
       var breathe = setInterval(function () {
         pulseTick++;
         var lvl = window.__beatPulse || 0;
-        var scale = 1 + lvl * 0.045;
         if (pulseTick > 40) { clearInterval(breathe); lineEl.style.transform = ""; return; }
-        lineEl.style.transform = "scale(" + scale.toFixed(4) + ")";
+        lineEl.style.transform = "scale(" + (1 + lvl * 0.045).toFixed(4) + ")";
       }, 90);
     }
     $("timecode").textContent = tcodeStr(tc);
-    if (isNew) {
+    if (f.n) {
       $("counter").textContent = "новый " + pad2(newSeen) + " / " + pad2(NEW.length);
     } else {
       $("counter").textContent = "кадр " + pad2(i + 1) + " / " + pad2(order.length);
