@@ -201,6 +201,11 @@
   .type-body .rec a { color: var(--pink); text-decoration: none; border-bottom: 1px solid rgba(214,74,151,0.35); transition: border-color 0.2s, color 0.2s; }
   .type-body .rec a:hover { color: var(--pink-hot); border-color: var(--pink-hot); }
 
+  .finale { margin-top: 30px; padding: 22px 22px 20px; border-top: 2px solid var(--pink); background: #fff; }
+  .finale h3 { font-size: clamp(19px, 4.6vw, 25px); margin: 0 0 10px; color: var(--ink); line-height: 1.3; }
+  .finale p { font-size: 15px; line-height: 1.6; color: var(--soft); margin: 0; }
+  .finale .fin-tag { font-size: 10px; letter-spacing: .18em; color: var(--pink); text-transform: uppercase; display: block; margin-bottom: 8px; }
+
   .picked { margin-top: 26px; padding: 18px 20px; border: 1px solid var(--line); background: #fff;
     font-size: 14.5px; line-height: 1.7; color: var(--soft); }
   .picked b { color: var(--ink); font-weight: 600; display: inline-block; margin-bottom: 6px; }
@@ -328,6 +333,11 @@
         <p class="what" id="whatReel"></p>
         <p class="rec" id="recReel"></p>
       </div>
+    </div>
+
+    <div class="finale" id="finale">
+      <h3 id="finTitle"></h3>
+      <p id="finText"></p>
     </div>
 
     <div class="picked" id="picked" style="display:none"></div>
@@ -1092,7 +1102,58 @@
       pk.innerHTML = "<b>новых кадров не взято.</b> ты посмотрел своё кино как есть — это тоже выбор.";
     }
     pk.style.display = "block";
+    var fin = chooseFinal(tally, yesTotal, picked.length);
+    $("finTitle").textContent = fin.title;
+    $("finText").textContent = fin.text;
     $("result").classList.add("on");
+  }
+
+  /* ——— финалы: 10 комбинаций по перекосам дня ——— */
+  var FINALS = [
+    { id: "F1",
+      when: function (t, yes) { return yes <= 3; },
+      title: "почти пустая плёнка.",
+      text: "в дне почти не было твоих кадров. это не приговор — это вопрос: где ты был, пока плёнка крутилась? завтра хватит одного кадра — только чтобы ты был в нём." },
+    { id: "F2",
+      when: function (t, yes) { return yes >= 12; },
+      title: "плёнка, забитая жизнью.",
+      text: "люди, дела, шаги — ты жил громко. проверь одно: в кадре есть ты, а не только движуха вокруг?" },
+    { id: "F3",
+      when: function (t, yes, pk) { return pk >= 5; },
+      title: "ты строишь новый фильм.",
+      text: "кадров, которых у тебя не было, ты взял почти все. это уже не пересмотр старого — это съёмка нового." },
+    { id: "F4",
+      when: function (t, yes, pk) { return pk >= 3; },
+      title: "камера в твоих руках.",
+      text: "несколько кадров, которых не было, — и они твои. маленький ход, но это уже твоя режиссура." },
+    { id: "F5",
+      when: function (t) { return t.reel >= 4 && t.reel >= t.other && t.reel >= t.mine; },
+      title: "день ушёл в чужое кино.",
+      text: "лента, витрина, чужие кадры — плёнку крутили за тебя. вернуть свой фильм можно одним кадром: окно, улица, человек рядом." },
+    { id: "F6",
+      when: function (t) { return t.other >= 4 && t.other >= t.mine; },
+      title: "твой фильм — про Других.",
+      text: "ты снимал людей: слушал, писал, делал незаметно. сильный фильм. только не забудь вписать туда себя." },
+    { id: "F7",
+      when: function (t) { return t.mine >= 5; },
+      title: "ты снимал своё.",
+      text: "дело, выбор, своя дорога — камера была в твоих руках. так и держи." },
+    { id: "F8",
+      when: function (t, yes, pk) { return pk >= 1; },
+      title: "первый новый кадр уже в монтаже.",
+      text: "кадр, которого не было, — и ты его взял. одного часто хватает, чтобы день стал твоим." },
+    { id: "F9",
+      when: function (t) { return Math.abs(t.other - t.mine) <= 1 && Math.abs(t.mine - t.reel) <= 1; },
+      title: "день без режиссёра.",
+      text: "всего понемногу: люди, дела, чужая лента. плёнка нормальная — но кто её снимает?" },
+    { id: "F10",
+      when: function () { return true; },
+      title: "смотрящий.",
+      text: "ты посмотрел свой день честно — что было и чего не было. этого достаточно, чтобы завтра снять больше." }
+  ];
+  function chooseFinal(t, yes, pk) {
+    for (var k = 0; k < FINALS.length; k++) if (FINALS[k].when(t, yes, pk)) return FINALS[k];
+    return FINALS[FINALS.length - 1];
   }
 
   /* ——— аккордеон типов ——— */
