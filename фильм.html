@@ -98,7 +98,7 @@
     position: absolute; inset: 0; z-index: 2;
     display: flex; align-items: center; justify-content: center;
     padding: 0 26px; text-align: center;
-    background: #0f0a14;
+    background: #f6efe6;
     will-change: transform;
   }
   .frame.next { z-index: 0; }
@@ -229,17 +229,17 @@
     .frame .line, #scratch, .fill, .hintDrag .arr, .type-body { animation: none !important; transition: none !important; }
   }
 
-  /* ——— визуальная сцена кадра ——— */
-  .frame .scenecv { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0.93; }
+  /* ——— визуальная сцена кадра: дуотон, светлая бумага ——— */
+  .frame .scenecv { position: absolute; inset: 0; width: 100%; height: 100%; }
   .frame .veil { position: absolute; inset: 0;
-    background: radial-gradient(ellipse 78% 62% at 50% 52%, rgba(8,6,14,.42), rgba(8,6,14,.72) 78%); }
-  .frame .line { position: relative; z-index: 3; color: #fff;
-    text-shadow: 0 2px 22px rgba(0,0,0,.65), 0 1px 3px rgba(0,0,0,.5); }
-  .frame .tcode { z-index: 3; color: rgba(255,255,255,.62); }
+    background: radial-gradient(ellipse 80% 64% at 50% 50%, rgba(250,243,235,.16), rgba(250,243,235,.44) 82%); }
+  .frame .line { position: relative; z-index: 3; color: var(--ink);
+    text-shadow: 0 1px 0 rgba(255,252,248,.8), 0 6px 26px rgba(255,252,248,.5); }
+  .frame .tcode { z-index: 3; color: #a79bb5; }
   .frame .stamp { z-index: 3; }
-  .stamp-yes { color: #ff8ec4; border-color: #ff8ec4; }
-  .stamp-no { color: #cfc4dd; border-color: #cfc4dd; }
-  .hintDrag { z-index: 3; color: rgba(255,255,255,.7); }
+  .stamp-yes { color: var(--pink); border-color: var(--pink); }
+  .stamp-no { color: var(--dim); border-color: var(--dim); }
+  .hintDrag { z-index: 3; color: var(--dim); }
 </style>
 </head>
 <body>
@@ -351,16 +351,16 @@
     { t: "написал человеку. просто так, без повода.", g: "other", img: "scenes/01-napisal.jpg" },
     { t: "слушал до конца, даже когда уже знал, что ответишь.", g: "other", img: "scenes/02-slushal.jpg" },
     { t: "сделал для Другого то, о чём никто не узнает.", g: "other", img: "scenes/03-sneg.jpg" },
-    { t: "сказал вслух то, что долго носил в себе.", g: "other", img: "scenes/04-dozhd.jpg" },
-    { t: "сел за отложенное и остался на час.", g: "mine", img: "scenes/05-stol.jpg" },
+    { t: "сказал вслух то, что долго носил в себе.", g: "other", img: "scenes/04-paradnaya.jpg" },
+    { t: "помыл за собой посуду сразу, а не оставил на утро.", g: "mine", img: "scenes/05-posuda.jpg" },
     { t: "выбрал своё, когда удобнее было промолчать.", g: "mine", img: "scenes/06-vybor.jpg" },
-    { t: "довёл одну вещь до финала — не пять до середины.", g: "mine", img: "scenes/07-svecha.jpg" },
+    { t: "довёл одну вещь до финала — не пять до середины.", g: "mine", img: "scenes/07-stol.jpg" },
     { t: "видел чужую дорогу — и остался на своей.", g: "mine", img: "scenes/08-doroga.jpg" },
-    { t: "чай у окна. без телефона, без спешки.", g: "mine", img: "scenes/09-chai.jpg" },
+    { t: "прочитал десять страниц бумажной книги — не ленты.", g: "mine", img: "scenes/09-kniga.jpg" },
     { t: "полчаса чужих кадров. досмотрел всё.", g: "reel", img: "scenes/10-ekran.jpg" },
     { t: "сравнивал свой день с чужой витриной.", g: "reel", img: "scenes/11-vitrina.jpg" },
     { t: "заметил, как минута с телефоном стала часом?", g: "reel", img: "scenes/12-telefon.jpg" },
-    { t: "вечером не смог вспомнить, куда ушёл день.", g: "reel", img: "scenes/13-tuman.jpg" }
+    { t: "подписался на ещё один курс — и не открыл.", g: "reel", img: "scenes/13-kurs.jpg" }
   ];
   var LAST = { t: "был там, где ты — минута, без экрана и без никого", g: "mine", img: "scenes/14-zvezdy.jpg" };
 
@@ -763,39 +763,34 @@
   };
   function asciiStart(path, cv, fallbackType) {
     function run(img) {
-      var W = cv.clientWidth || 420, H = cv.clientHeight || 700;
-      var cw = AC.cwTarget;
-      var cols = Math.max(36, Math.round(W / cw));
-      var ch = Math.round(cw * 1.72);
-      var rows = Math.max(24, Math.floor(H / ch));
-      cv.width = cols * cw;
-      cv.height = rows * ch;
+      var W = Math.max(320, cv.clientWidth || 420);
+      var H = Math.max(420, cv.clientHeight || 700);
+      cv.width = W; cv.height = H;
       var ctx = cv.getContext("2d");
-      ctx.fillStyle = "#06050a";
-      ctx.fillRect(0, 0, cv.width, cv.height);
+      // вписываем снимок в кадр без искажений (cover)
       var oc = document.createElement("canvas");
-      oc.width = cols; oc.height = rows;
+      oc.width = W; oc.height = H;
       var octx = oc.getContext("2d");
-      octx.drawImage(img, 0, 0, cols, rows);
-      var d = octx.getImageData(0, 0, cols, rows).data;
-      ctx.font = Math.round(ch * 0.94) + "px 'Consolas','DejaVu Sans Mono',monospace";
-      ctx.textBaseline = "middle";
-      var chars = AC.chars;
-      for (var y = 0; y < rows; y++) {
-        for (var x = 0; x < cols; x++) {
-          var i = (y * cols + x) * 4;
-          var lum = (d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114) / 255;
-          lum = lum * lum * (3 - 2 * lum);
-          lum = Math.pow(lum, 1.15);
-          var im = Math.min(chars.length - 1, Math.floor(lum * chars.length * 1.15));
-          var c = chars[im];
-          if (c === " ") continue;
-          ctx.fillStyle = lum > 0.62 ? "rgba(252,220,238,.97)"
-                        : lum > 0.34 ? "rgba(219,132,188,.9)"
-                        : "rgba(136,76,128,.55)";
-          ctx.fillText(c, x * cw, y * ch + ch / 2);
-        }
+      var sc = Math.max(W / img.width, H / img.height);
+      var dw = img.width * sc, dh = img.height * sc;
+      octx.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
+      var d = octx.getImageData(0, 0, W, H).data;
+      var out = ctx.createImageData(W, H);
+      for (var p = 0; p < d.length; p += 4) {
+        var lum = (d[p] * 0.299 + d[p + 1] * 0.587 + d[p + 2] * 0.114) / 255;
+        lum = Math.pow(lum, 0.82);            // приподнять света — воздух
+        lum = lum * 0.86 + 0.14;              // подмешать бумагу
+        out.data[p]     = Math.round(58 + (250 - 58) * lum);
+        out.data[p + 1] = Math.round(38 + (243 - 38) * lum);
+        out.data[p + 2] = Math.round(58 + (235 - 58) * lum);
+        out.data[p + 3] = 255;
       }
+      ctx.putImageData(out, 0, 0);
+      // розовая подсветка сверху — фирменный штрих
+      var g = ctx.createRadialGradient(W * 0.72, H * 0.16, 8, W * 0.72, H * 0.16, W * 0.95);
+      g.addColorStop(0, "rgba(232,93,168,.22)");
+      g.addColorStop(1, "rgba(232,93,168,0)");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
     }
     if (AC.cache[path]) { run(AC.cache[path]); return; }
     var im = new Image();
