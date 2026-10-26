@@ -207,6 +207,8 @@
   .type-body .rec a { color: var(--pink); text-decoration: none; border-bottom: 1px solid rgba(214,74,151,0.35); transition: border-color 0.2s, color 0.2s; }
   .type-body .rec a:hover { color: var(--pink-hot); border-color: var(--pink-hot); }
 
+  .reelstrip { width: 100%; display: block; margin: 0 0 26px; border-radius: 3px;
+    box-shadow: 0 8px 30px rgba(26,11,46,.22); }
   .finale { margin-top: 30px; padding: 22px 22px 20px; border-top: 2px solid var(--pink); background: #fff; }
   .finale h3 { font-size: clamp(19px, 4.6vw, 25px); margin: 0 0 10px; color: var(--ink); line-height: 1.3; }
   .finale p { font-size: 15px; line-height: 1.6; color: var(--soft); margin: 0; }
@@ -295,7 +297,7 @@
 
 <!-- результат -->
 <section id="result">
-  <div class="rwrap">
+  <div class="rwrap" id="rwrap">
     <div class="kicker">киностудия Человека — розовый взгляд.</div>
     <h2 id="rTitle">твой фильм — <em>14 кадров</em>.</h2>
     <p class="leadline" id="leadline">нажми на строку — расскажу, что это за фильм, и дам пост по теме.</p>
@@ -1083,6 +1085,55 @@
     $("nMine").textContent = tally.mine + (yesTotal ? " · " + pct("mine") + "%" : "");
     $("nReel").textContent = tally.reel + (yesTotal ? " · " + pct("reel") + "%" : "");
     $("leadline").textContent = "нажми на строку — узнаешь про формат плёнки.";
+    // лента из всех кадров, которые человек только что прошёл
+    (function buildStrip() {
+      var old = document.getElementById("reelstrip");
+      if (old) old.remove();
+      var strip = document.createElement("canvas");
+      strip.id = "reelstrip";
+      strip.className = "reelstrip";
+      var rw = 1000, rh = 150;
+      strip.width = rw; strip.height = rh;
+      var sctx = strip.getContext("2d");
+      sctx.fillStyle = "#171019"; sctx.fillRect(0, 0, rw, rh);
+      sctx.fillStyle = "rgba(239,233,246,.8)";
+      for (var ph = 6; ph < rw - 14; ph += 26) {
+        sctx.fillRect(ph, 7, 14, 9);
+        sctx.fillRect(ph, rh - 16, 14, 9);
+      }
+      var tileW = 86, tileH = 116, gap = (rw - 12 - 20 * tileW) / 19;
+      for (var ti = 0; ti < order.length; ti++) {
+        var x0 = 6 + ti * (tileW + gap);
+        var src = AC.cache[order[ti].img];
+        if (src) {
+          var tc = document.createElement("canvas");
+          tc.width = tileW; tc.height = tileH;
+          var tctx = tc.getContext("2d");
+          var sc = Math.max(tileW / src.width, tileH / src.height);
+          var dw2 = src.width * sc, dh2 = src.height * sc;
+          tctx.drawImage(src, (tileW - dw2) / 2, (tileH - dh2) / 2, dw2, dh2);
+          var dd = tctx.getImageData(0, 0, tileW, tileH).data;
+          var out2 = tctx.createImageData(tileW, tileH);
+          for (var pp = 0; pp < dd.length; pp += 4) {
+            var lum = (dd[pp] * 0.299 + dd[pp + 1] * 0.587 + dd[pp + 2] * 0.114) / 255;
+            lum = Math.pow(lum, 0.82) * 0.86 + 0.14;
+            out2.data[pp] = Math.round(58 + (250 - 58) * lum);
+            out2.data[pp + 1] = Math.round(38 + (243 - 38) * lum);
+            out2.data[pp + 2] = Math.round(58 + (235 - 58) * lum);
+            out2.data[pp + 3] = 255;
+          }
+          tctx.putImageData(out2, 0, 0);
+          sctx.drawImage(tc, x0, 17);
+        } else {
+          sctx.fillStyle = "#241a30"; sctx.fillRect(x0, 17, tileW, tileH);
+        }
+        sctx.fillStyle = "rgba(255,255,255,.6)";
+        sctx.font = "9px sans-serif";
+        sctx.fillText(String(ti + 1), x0 + 3, 142);
+      }
+      var rwEl = $("rwrap");
+      rwEl.insertBefore(strip, $("rTitle"));
+    })();
     setTimeout(function () {
       $("fOther").style.width = pct("other") + "%";
       $("fMine").style.width = pct("mine") + "%";
