@@ -47,6 +47,12 @@
     color: var(--dim); margin-bottom: 26px;
   }
   .mark b { color: var(--pink); font-weight: 600; }
+  .gender { display: flex; gap: 10px; justify-content: center; margin: 22px 0 10px; }
+  .gbtn { background: none; border: 1px solid var(--line); color: var(--soft); font: inherit; font-size: 14px;
+    padding: 10px 22px; cursor: pointer; border-radius: 2px; transition: border-color .2s, color .2s; }
+  .gbtn.on { border-color: var(--pink); color: var(--pink); }
+  .gbtn:hover { border-color: var(--pink); }
+
   #intro h1 {
     font-size: clamp(32px, 8vw, 54px); line-height: 1.12; font-weight: 700;
     letter-spacing: -0.015em; margin-bottom: 22px; max-width: 15ch;
@@ -253,10 +259,14 @@
 <!-- старт -->
 <section id="intro" class="dvh">
   <div class="mark">розовый взгляд <b>👁</b> плёнка №1</div>
-  <h1>фильм, где ты <em>главный герой</em></h1>
-  <p class="lead">вспомни свой вчерашний день. дальше — кадры: тяни вправо — «было», влево — «не было». а в середине выпадут новые кадры — те, которых у тебя не было: их можно взять в свой фильм или пропустить. правильных ответов нет — это твой фильм.</p>
+  <h1>фильм, где ты — <em>главный режиссёр, сценарист и актёр</em>.</h1>
+  <p class="lead">на примере своего вчерашнего дня посмотри, как работает внимание и как твоими глазами создаётся Жизнь. тяни налево — если было, направо — если не было. в конце узнаешь свой жанр и получишь вопрос на подумать. приятного просмотра!</p>
+  <div class="gender">
+    <button class="gbtn on" id="gM" type="button">я мужчина</button>
+    <button class="gbtn" id="gF" type="button">я женщина</button>
+  </div>
   <button id="start">запустить плёнку →</button>
-  <p class="fine">14 кадров дня + 6 новых · минута тишины · страница ничего не отправляет и не запоминает</p>
+  <p class="fine">20 кадров · минута тишины · страница ничего не отправляет и не запоминает</p>
 </section>
 
 <!-- монтажная -->
@@ -268,7 +278,7 @@
   <div id="frameArea"></div>
   <div class="lb lb-bot">
     <span id="timecode">00:00:00:00</span>
-    <span class="zone-hint"><span>← не было</span><span>было →</span></span>
+    <span class="zone-hint"><span>← было</span><span>не было →</span></span>
     <span id="counter">кадр 01 / 14</span>
   </div>
 </div>
@@ -281,12 +291,12 @@
 <div id="cut"></div>
 
 <!-- конец плёнки -->
-<div id="reelEnd"><span>плёнка кончилась.</span></div>
+<div id="reelEnd"><span>плёнка прокрутилась.</span></div>
 
 <!-- результат -->
 <section id="result">
   <div class="rwrap">
-    <div class="kicker">монтажный лист · розовый взгляд 👁</div>
+    <div class="kicker">киностудия Человека — розовый взгляд.</div>
     <h2 id="rTitle">твой фильм — <em>14 кадров</em>.</h2>
     <p class="leadline" id="leadline">нажми на строку — расскажу, что это за фильм, и дам пост по теме.</p>
 
@@ -356,33 +366,32 @@
 (function () {
   "use strict";
 
-  /* ——— кадры плёнки ——— */
+  /* ——— кадры плёнки: 20 в одном потоке, тексты в мужском и женском роде ——— */
   var FRAMES = [
-    { t: "написал человеку. просто так, без повода.", g: "other", img: "scenes/01-napisal.jpg" },
-    { t: "слушал до конца, даже когда уже знал, что ответишь.", g: "other", img: "scenes/02-slushal.jpg" },
-    { t: "сделал для Другого то, о чём никто не узнает.", g: "other", img: "scenes/03-sneg.jpg" },
-    { t: "сказал вслух то, что долго носил в себе.", g: "other", img: "scenes/04-paradnaya.jpg" },
-    { t: "помыл за собой посуду сразу, а не оставил на утро.", g: "mine", img: "scenes/05-posuda.jpg" },
-    { t: "выбрал своё, когда удобнее было промолчать.", g: "mine", img: "scenes/06-vybor.jpg" },
-    { t: "довёл одну вещь до финала — не пять до середины.", g: "mine", img: "scenes/07-stol.jpg" },
-    { t: "видел чужую дорогу — и остался на своей.", g: "mine", img: "scenes/08-doroga.jpg" },
-    { t: "прочитал десять страниц бумажной книги — не ленты.", g: "mine", img: "scenes/09-kniga.jpg" },
-    { t: "полчаса чужих кадров. досмотрел всё.", g: "reel", img: "scenes/10-ekran.jpg" },
-    { t: "сравнивал свой день с чужой витриной.", g: "reel", img: "scenes/11-vitrina.jpg" },
-    { t: "заметил, как минута с телефоном стала часом?", g: "reel", img: "scenes/12-telefon.jpg" },
-    { t: "подписался на ещё один курс — и не открыл.", g: "reel", img: "scenes/13-kurs.jpg" }
+    { m: "написал знакомым без повода.", f: "написала знакомым без повода.", g: "other", img: "scenes/01-napisal.jpg" },
+    { m: "дослушал собеседника, даже когда знал, как отвечу. хотелось понять до конца.", f: "дослушала собеседника, даже когда знала, как отвечу. хотелось понять до конца.", g: "other", img: "scenes/02-slushal.jpg" },
+    { m: "сделал для Другого то, о чём никто не узнает.", f: "сделала для Другого то, о чём никто не узнает.", g: "other", img: "scenes/03-sneg.jpg" },
+    { m: "сказал вслух то, что долго носил в себе.", f: "сказала вслух то, что долго носила в себе.", g: "other", img: "scenes/04-paradnaya.jpg" },
+    { m: "помыл за собой посуду сразу, не оставляя на долгое потом.", f: "помыла за собой посуду сразу, не оставляя на долгое потом.", g: "mine", img: "scenes/05-posuda.jpg" },
+    { m: "выбрал себя, когда привычнее было промолчать.", f: "выбрала себя, когда привычнее было промолчать.", g: "mine", img: "scenes/06-vybor.jpg" },
+    { m: "довёл одно дело до завершения без прокрастинации.", f: "довела одно дело до завершения без прокрастинации.", g: "mine", img: "scenes/07-stol.jpg" },
+    { m: "видел, как хочу поступить не по-своему — и остался на своём.", f: "видела, как хочу поступить не по-своему — и осталась на своём.", g: "mine", img: "scenes/08-doroga.jpg" },
+    { m: "прочитал десять страниц интересной книги. свежо!", f: "прочитала десять страниц интересной книги. свежо!", g: "mine", img: "scenes/09-kniga.jpg" },
+    { m: "полчаса или даже несколько часов рилсов. было увлекательно.", f: "полчаса или даже несколько часов рилсов. было увлекательно.", g: "reel", img: "scenes/10-ekran.jpg" },
+    { m: "сравнивал свою жизнь с чужой успешной картинкой.", f: "сравнивала свою жизнь с чужой успешной картинкой.", g: "reel", img: "scenes/11-vitrina.jpg" },
+    { m: "заметил, как пару минут отдыха превратились в сонную лощину на диване.", f: "заметила, как пару минут отдыха превратились в сонную лощину на диване.", g: "reel", img: "scenes/12-telefon.jpg" },
+    { m: "увидел то, что хочу попробовать, и ничего не сделал. а заняло бы 10 минут от силы.", f: "увидела то, что хочу попробовать, и ничего не сделала. а заняло бы 10 минут от силы.", g: "reel", img: "scenes/13-kurs.jpg" },
+    { m: "был хотя бы минуту наедине с собой без экранов, информации и внешнего шума.", f: "была хотя бы минуту наедине с собой без экранов, информации и внешнего шума.", g: "mine", img: "scenes/14-zvezdy.jpg", last: true },
+    { m: "попросил о помощи без чувства стыда и неудобства.", f: "попросила о помощи без чувства стыда и неудобства.", g: "other", n: true, img: "scenes/15-pomoshch.jpg" },
+    { m: "отказал со спокойной душой там, где у тебя нет желания что-либо делать.", f: "отказала со спокойной душой там, где у тебя нет желания что-либо делать.", g: "other", n: true, img: "scenes/16-dver.jpg" },
+    { m: "заговорил с незнакомым человеком первым.", f: "заговорила с незнакомым человеком первой.", g: "other", n: true, img: "scenes/17-ulitsa.jpg" },
+    { m: "сделал что-то от своего чувства прекрасного — поделку, блюдо, атмосферу, диалог.", f: "сделала что-то от своего чувства прекрасного — поделку, блюдо, атмосферу, диалог.", g: "mine", n: true, img: "scenes/18-ruki.jpg" },
+    { m: "пошёл гулять без маршрута и цели — куда глаза глядят)", f: "пошла гулять без маршрута и цели — куда глаза глядят)", g: "mine", n: true, img: "scenes/19-dvor.jpg" },
+    { m: "вернулся туда, где давно не был.", f: "вернулась туда, где давно не была.", g: "mine", n: true, img: "scenes/20-podezd.jpg" }
   ];
-  var LAST = { t: "был там, где ты — минута, без экрана и без никого", g: "mine", img: "scenes/14-zvezdy.jpg" };
-
-  /* ——— новые кадры: свободные оси, не дублируют кадры дня (см. КАТАЛОГ-КАДРОВ.md) ——— */
-  var NEW = [
-    { t: "попросить о помощи — вслух, без «мне неудобно».", g: "other", n: true, img: "scenes/15-pomoshch.jpg" },
-    { t: "сказать «нет» и не извиниться за это.", g: "other", n: true, img: "scenes/16-dver.jpg" },
-    { t: "заговорить с незнакомым человеком первым.", g: "other", n: true, img: "scenes/17-ulitsa.jpg" },
-    { t: "сделать что-то руками — приготовить, собрать, починить.", g: "mine", n: true, img: "scenes/18-ruki.jpg" },
-    { t: "выйти из дома без цели и маршрута.", g: "mine", n: true, img: "scenes/19-dvor.jpg" },
-    { t: "вернуться туда, где давно не был.", g: "mine", n: true, img: "scenes/20-podezd.jpg" }
-  ];
+  var GENDER = "m";
+  var FINALFRAME = FRAMES[13];
+  var FLOW = FRAMES.slice(0, 13).concat(FRAMES.slice(14, 20));
 
   /* ——— расшифровки и посты по типам фильма ——— */
   var TG = "https://t.me/p1nks1ght/";
@@ -401,9 +410,7 @@
     }
   };
 
-  var order = shuffle(FRAMES.slice(0, 7))
-    .concat(shuffle(NEW.slice()))
-    .concat(shuffle(FRAMES.slice(7)).concat([LAST]));
+  var order = shuffle(FLOW.slice()).concat([FINALFRAME]);
   var i = 0, tc = 0, newSeen = 0;
   var tally = { other: 0, mine: 0, reel: 0 };
   var yesTotal = 0;
@@ -826,7 +833,7 @@
     el.appendChild(cv); el.appendChild(veil);
     var line = document.createElement("div");
     line.className = "line";
-    line.textContent = f.t;
+    line.textContent = f[GENDER];
     el.appendChild(line);
     var isNew = !!f.n;
     var sy = document.createElement("div");
@@ -881,7 +888,7 @@
       dragHinted = true;
       var hint = document.createElement("div");
       hint.className = "hintDrag";
-      hint.innerHTML = '<span class="arr arr-l">←</span> &nbsp;тяни кадр или тапни по своей половине&nbsp; <span class="arr arr-r">→</span>';
+      hint.textContent = "тяни кадр в сторону или нажми на половину экрана.";
       cur.appendChild(hint);
     }
     // строка кадра дышит с битом
@@ -896,11 +903,7 @@
       }, 90);
     }
     $("timecode").textContent = tcodeStr(tc);
-    if (f.n) {
-      $("counter").textContent = "новый " + pad2(newSeen) + " / " + pad2(NEW.length);
-    } else {
-      $("counter").textContent = "кадр " + pad2(i + 1) + " / " + pad2(order.length);
-    }
+    $("counter").textContent = "кадр " + pad2(i + 1) + " / " + pad2(order.length);
     cut.classList.remove("flash");
     void cut.offsetWidth;
     cut.classList.add("flash");
@@ -933,8 +936,8 @@
     if (!el) return;
     var vis = maxAbs > TAP_JITTER ? dx : 0;
     el.style.transform = "translateX(" + vis + "px) rotate(" + (vis / 22) + "deg)";
-    el.querySelector(".stamp-yes").style.opacity = vis > 0 ? zoneOpacity(vis) : 0;
-    el.querySelector(".stamp-no").style.opacity = vis < 0 ? zoneOpacity(-vis) : 0;
+    el.querySelector(".stamp-yes").style.opacity = vis < 0 ? zoneOpacity(vis) : 0;
+    el.querySelector(".stamp-no").style.opacity = vis > 0 ? zoneOpacity(vis) : 0;
   }
   function onUp(e) {
     if (!dragging) return;
@@ -944,15 +947,15 @@
     if (!el) return;
     if (!tracked || maxAbs < TAP_JITTER) {
       var p = e.changedTouches ? e.changedTouches[0] : e;
-      var yes = p.clientX >= window.innerWidth / 2;
+      var yes = p.clientX < window.innerWidth / 2;
       locked = true;
       el.classList.add("spring");
       el.style.transform = "";
       setTimeout(function () { answerInner(yes, true); }, 90);
       return;
     }
-    if (dx > DECIDE) answer(true, false, el, dx);
-    else if (dx < -DECIDE) answer(false, false, el, dx);
+    if (dx < -DECIDE) answer(true, false, el, dx);
+    else if (dx > DECIDE) answer(false, false, el, dx);
     else {
       el.classList.add("spring");
       el.style.transform = "";
@@ -1079,9 +1082,7 @@
     $("nOther").textContent = tally.other + (yesTotal ? " · " + pct("other") + "%" : "");
     $("nMine").textContent = tally.mine + (yesTotal ? " · " + pct("mine") + "%" : "");
     $("nReel").textContent = tally.reel + (yesTotal ? " · " + pct("reel") + "%" : "");
-    $("leadline").textContent = yesTotal === 0
-      ? "в этой плёнке не отмечено ни одного кадра — и это тоже честный ответ. строки ниже всё равно про тебя."
-      : "нажми на строку — расскажу, что это за фильм, и дам пост по теме.";
+    $("leadline").textContent = "нажми на строку — узнаешь про формат плёнки.";
     setTimeout(function () {
       $("fOther").style.width = pct("other") + "%";
       $("fMine").style.width = pct("mine") + "%";
@@ -1096,14 +1097,16 @@
 
     var pk = $("picked");
     if (picked.length) {
-      pk.innerHTML = "<b>кадры, которые ты взял в свой фильм:</b><br>" +
-        picked.map(function (x) { return "— " + x.t; }).join("<br>");
+      pk.innerHTML = "<b>" + (GENDER === "m"
+        ? "кадры, которые ты отобрал для своего фильма:"
+        : "кадры, которые ты отобрала для своего фильма:") + "</b><br>" +
+        picked.map(function (x) { return "— " + x[GENDER]; }).join("<br>");
     } else {
-      pk.innerHTML = "<b>новых кадров не взято.</b> ты посмотрел своё кино как есть — это тоже выбор.";
+      pk.innerHTML = "<b>новые кадры ты пока не выбираешь. а кто не любит проверенные фильмы?</b>";
     }
     pk.style.display = "block";
     var fin = chooseFinal(tally, yesTotal, picked.length);
-    $("finTitle").textContent = fin.title;
+    $("finTitle").textContent = typeof fin.title === "string" ? fin.title : fin.title[GENDER];
     $("finText").textContent = fin.text;
     $("result").classList.add("on");
   }
@@ -1112,44 +1115,44 @@
   var FINALS = [
     { id: "F1",
       when: function (t, yes) { return yes <= 3; },
-      title: "почти пустая плёнка.",
-      text: "в дне почти не было твоих кадров. это не приговор — это вопрос: где ты был, пока плёнка крутилась? завтра хватит одного кадра — только чтобы ты был в нём." },
+      title: "плёнка оказалась почти пустой.",
+      text: "пустая плёнка — тоже плёнка. какой кадр завтра станет первым твоим?" },
     { id: "F2",
       when: function (t, yes) { return yes >= 12; },
-      title: "плёнка, забитая жизнью.",
-      text: "люди, дела, шаги — ты жил громко. проверь одно: в кадре есть ты, а не только движуха вокруг?" },
+      title: "подлинная живая автобиография.",
+      text: "день прожит плотно. какой из этих кадров достоин финальной сцены фильма о тебе?" },
     { id: "F3",
       when: function (t, yes, pk) { return pk >= 5; },
-      title: "ты строишь новый фильм.",
-      text: "кадров, которых у тебя не было, ты взял почти все. это уже не пересмотр старого — это съёмка нового." },
+      title: "собираешь материал к новому шедевру.",
+      text: "материал собран. какой первый кадр нового фильма ты уже видишь?" },
     { id: "F4",
       when: function (t, yes, pk) { return pk >= 3; },
-      title: "камера в твоих руках.",
-      text: "несколько кадров, которых не было, — и они твои. маленький ход, но это уже твоя режиссура." },
+      title: "наблюдаешь за сценой и подбираешь кадр.",
+      text: "наблюдение — тоже работа режиссёра. какой кадр этого дня стоит доснять завтра до конца?" },
     { id: "F5",
       when: function (t) { return t.reel >= 4 && t.reel >= t.other && t.reel >= t.mine; },
-      title: "день ушёл в чужое кино.",
-      text: "лента, витрина, чужие кадры — плёнку крутили за тебя. вернуть свой фильм можно одним кадром: окно, улица, человек рядом." },
+      title: "готовые фильмы оказались интереснее.",
+      text: "чужие фильмы смотрятся легко. что в твоём дне стоило бы показать другому Человеку?" },
     { id: "F6",
       when: function (t) { return t.other >= 4 && t.other >= t.mine; },
-      title: "твой фильм — про Других.",
-      text: "ты снимал людей: слушал, писал, делал незаметно. сильный фильм. только не забудь вписать туда себя." },
+      title: "твой фильм про Других. ты видишь Человека.",
+      text: "ты видишь Человека. когда твой кадр в последний раз попадал в собственный фильм?" },
     { id: "F7",
       when: function (t) { return t.mine >= 5; },
-      title: "ты снимал своё.",
-      text: "дело, выбор, своя дорога — камера была в твоих руках. так и держи." },
+      title: { m: "ты снимал своё видение.", f: "ты снимала своё видение." },
+      text: "камера была в твоих руках. что из снятого ты покажешь первым — и кому?" },
     { id: "F8",
       when: function (t, yes, pk) { return pk >= 1; },
-      title: "первый новый кадр уже в монтаже.",
-      text: "кадр, которого не было, — и ты его взял. одного часто хватает, чтобы день стал твоим." },
+      title: "ты не упускаешь новый кадр.",
+      text: "кадр взят. каким будет следующий — тот, который ты пока не замечаешь в своём дне?" },
     { id: "F9",
       when: function (t) { return Math.abs(t.other - t.mine) <= 1 && Math.abs(t.mine - t.reel) <= 1; },
-      title: "день без режиссёра.",
-      text: "всего понемногу: люди, дела, чужая лента. плёнка нормальная — но кто её снимает?" },
+      title: "режиссёра на площадку!",
+      text: "все жанры сразу. какой из них твой — и что ты усилишь завтра?" },
     { id: "F10",
       when: function () { return true; },
-      title: "смотрящий.",
-      text: "ты посмотрел свой день честно — что было и чего не было. этого достаточно, чтобы завтра снять больше." }
+      title: "красота в глазах смотрящего.",
+      text: "ты превосходно собираешь полную сцену из всех возможных кадров. какой момент был максимально непохожим на другие? как тебе удалось его увидеть?" }
   ];
   function chooseFinal(t, yes, pk) {
     for (var k = 0; k < FINALS.length; k++) if (FINALS[k].when(t, yes, pk)) return FINALS[k];
@@ -1166,6 +1169,14 @@
       });
       if (!wasOpen) row.classList.add("open");
     });
+  });
+
+  /* ——— выбор пола: род текстов кадров и финалов ——— */
+  $("gM").addEventListener("click", function () {
+    GENDER = "m"; this.classList.add("on"); $("gF").classList.remove("on");
+  });
+  $("gF").addEventListener("click", function () {
+    GENDER = "f"; this.classList.add("on"); $("gM").classList.remove("on");
   });
 
   /* ——— управление ——— */
@@ -1188,9 +1199,7 @@
     if (beat) beat.muted = !soundOn;
   });
   $("again").addEventListener("click", function () {
-    order = shuffle(FRAMES.slice(0, 7))
-      .concat(shuffle(NEW.slice()))
-      .concat(shuffle(FRAMES.slice(7)).concat([LAST]));
+    order = shuffle(FLOW.slice()).concat([FINALFRAME]);
     i = 0; tc = 0; newSeen = 0; tally = { other: 0, mine: 0, reel: 0 }; yesTotal = 0; picked = [];
     $("picked").style.display = "none";
     $("fOther").style.width = "0"; $("fMine").style.width = "0"; $("fReel").style.width = "0";

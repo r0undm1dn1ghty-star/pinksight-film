@@ -1,0 +1,45 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>запуск…</title></head>
+<body style="background:#111">
+<iframe id="f" src="/index.html" style="width:440px;height:880px;border:0"></iframe>
+<script>
+window.addEventListener('load', function () {
+  setTimeout(function () {
+    var win = document.getElementById('f').contentWindow;
+    var doc = win.document;
+    // выбираем женский пол и запускаем
+    doc.getElementById('gF').click();
+    doc.getElementById('intro').classList.add('gone');
+    doc.getElementById('cinema').classList.add('on');
+    doc.getElementById('start').click();
+    var fa = doc.getElementById('frameArea');
+    var winRef = win;
+    function ev(t, x) { return new winRef.MouseEvent(t, { bubbles: true, cancelable: true, clientX: x, clientY: 450 }); }
+    var last = '', n = 0, leftStampSeen = false;
+    var iv = setInterval(function () {
+      if (!fa.querySelector('.frame')) return;
+      var c = doc.getElementById('counter').textContent;
+      if (c === last) return; last = c;
+      if (n >= 20) { clearInterval(iv); return; }
+      if (n % 2 === 0) {
+        // влево = было
+        fa.dispatchEvent(ev('mousedown', 430)); win.dispatchEvent(ev('mousemove', 300)); win.dispatchEvent(ev('mouseup', 300));
+      } else {
+        fa.dispatchEvent(ev('mousedown', 90)); win.dispatchEvent(ev('mousemove', 350)); win.dispatchEvent(ev('mouseup', 350));
+      }
+      n++;
+    }, 150);
+    setTimeout(function () {
+      var res = doc.getElementById('result');
+      var ft = doc.getElementById('finTitle');
+      var pk = doc.getElementById('picked');
+      document.title = 'T|done:' + n +
+        '|res:' + (res && res.classList.contains('on')) +
+        '|counter20:' + (doc.getElementById('counter').textContent.indexOf('кадр 20 / 20') === 0) +
+        '|finTitle:' + ft.textContent.slice(0, 36) +
+        '|pickedHead:' + (pk.textContent.indexOf('отобрала') > -1 ? 'ж' : (pk.textContent.indexOf('отобрал') > -1 ? 'м' : 'нет'));
+    }, 13000);
+  }, 300);
+});
+</script>
+</body></html>
