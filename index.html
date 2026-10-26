@@ -1190,8 +1190,8 @@
   });
   document.addEventListener("keydown", function (e) {
     if (!cinema.classList.contains("on")) return;
-    if (e.key === "ArrowRight") answer(true);
-    if (e.key === "ArrowLeft") answer(false);
+    if (e.key === "ArrowLeft") answer(true);   // налево — было
+    if (e.key === "ArrowRight") answer(false); // направо — не было
   });
   $("soundBtn").addEventListener("click", function () {
     soundOn = !soundOn;
