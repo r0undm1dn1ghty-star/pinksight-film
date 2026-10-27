@@ -1153,7 +1153,7 @@
         : "кадры, которые ты отобрала для своего фильма:") + "</b><br>" +
         picked.map(function (x) { return "— " + x[GENDER]; }).join("<br>");
     } else {
-      pk.innerHTML = "<b>новые кадры ты пока не выбираешь. а кто не любит проверенные фильмы?</b>";
+      pk.innerHTML = "<b>новые кадры не взяты.</b> плёнка просто сохранила день, каким он был.";
     }
     pk.style.display = "block";
     var fin = chooseFinal(tally, yesTotal, picked.length);
