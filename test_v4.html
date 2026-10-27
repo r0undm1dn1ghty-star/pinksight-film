@@ -31,12 +31,14 @@ window.addEventListener('load', function () {
     }, 150);
     setTimeout(function () {
       var res = doc.getElementById('result');
-      var ft = doc.getElementById('finTitle');
+      var rt = doc.getElementById('rTitle');
+      var fl = doc.getElementById('finLead');
       var pk = doc.getElementById('picked');
       document.title = 'T|done:' + n +
         '|res:' + (res && res.classList.contains('on')) +
         '|counter20:' + (doc.getElementById('counter').textContent.indexOf('кадр 20 / 20') === 0) +
-        '|finTitle:' + ft.textContent.slice(0, 36) +
+        '|finTitle:' + rt.textContent.slice(0, 36) +
+        '|finLead:' + fl.textContent.slice(0, 30) +
         '|pickedHead:' + (pk.textContent.indexOf('отобрала') > -1 ? 'ж' : (pk.textContent.indexOf('отобрал') > -1 ? 'м' : 'нет'));
     }, 13000);
   }, 300);
