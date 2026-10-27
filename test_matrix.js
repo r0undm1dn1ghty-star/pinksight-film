@@ -30,6 +30,9 @@ for (let o = 0; o <= 4; o++)
           if (f.id !== ({ other: 'F6', mine: 'F7', reel: 'F5' })[dom])
             anomalies.push('тип ' + dom + ' ' + o + '/' + m + '/' + r + ' pk=' + pk + ' → ' + f.id);
         }
+        // кейс Виктора со скрина: 2/4/4 (ничья своих/чужих)
+        if (o === 2 && m === 4 && r === 4 && (pk === 2 || pk === 4))
+          console.log('  кейс 2/4/4 pk=' + pk + ' → ' + f.id + ' «' + (typeof f.title === 'string' ? f.title : f.title.m) + '»');
       }
 
 console.log('комбинаций:', (5 * 7 * 5 * 7));
